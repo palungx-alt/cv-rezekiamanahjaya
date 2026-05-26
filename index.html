@@ -1,516 +1,696 @@
 <!DOCTYPE html>
 <html lang="id">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sistem Dokumen - CV REZEKI AMANAH JAYA</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sistem Dokumen - CV REZEKI AMANAH JAYA</title>
+  
+  <!-- Firebase SDK -->
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+  
+  <!-- PDF Library -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+  
+  <style>
+    :root { 
+      --primary: #064e3b; 
+      --accent: #10b981; 
+      --bg: #f3f4f6; 
+      --card: #ffffff; 
+      --text: #1f2937; 
+      --border: #e5e7eb; 
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
     
-    <!-- Library PDF -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    .layout { display: flex; min-height: 100vh; }
     
-    <!-- Firebase SDK -->
-    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+    /* SIDEBAR */
+    .sidebar { 
+      width: 280px; 
+      background: #111827; 
+      color: white; 
+      padding: 20px; 
+      display: flex; 
+      flex-direction: column; 
+      box-shadow: 4px 0 10px rgba(0,0,0,0.1);
+    }
+    .logo-area { text-align: center; margin-bottom: 30px; padding-bottom: 20px; border-bottom: 1px solid #374151; }
+    .logo-img { width: 90px; height: auto; margin-bottom: 10px; }
+    .company-name { font-size: 15px; font-weight: 700; line-height: 1.3; color: #d1d5db; }
+    .company-sub { font-size: 10px; color: #9ca3af; margin-top: 4px; }
+    
+    .nav-btn { 
+      background: transparent; 
+      border: none; 
+      color: #9ca3af; 
+      padding: 12px 16px; 
+      text-align: left; 
+      cursor: pointer; 
+      border-radius: 8px; 
+      margin-bottom: 8px; 
+      font-size: 14px; 
+      font-weight: 500;
+      transition: 0.3s; 
+      display: flex; align-items: center; gap: 12px;
+    }
+    .nav-btn:hover, .nav-btn.active { background: #1f2937; color: var(--accent); }
+    
+    .status-indicator { 
+      margin-top: auto; 
+      padding: 12px; 
+      background: #1f2937; 
+      border-radius: 8px; 
+      font-size: 12px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .status-dot { 
+      width: 8px; 
+      height: 8px; 
+      border-radius: 50%; 
+      background: #10b981;
+      animation: pulse 2s infinite;
+    }
+    .status-dot.offline { background: #ef4444; animation: none; }
+    @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+    
+    /* MAIN CONTENT */
+    .main { flex: 1; padding: 30px; }
+    .view { display: none; animation: fadeIn 0.3s; }
+    .view.active { display: block; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 
-    <style>
-        :root {
-            --primary: #064e3b;
-            --secondary: #10b981;
-            --bg: #f3f4f6;
-            --white: #ffffff;
-            --text: #1f2937;
-            --border: #e5e7eb;
-        }
-        
-        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
-        
-        body { background: var(--bg); color: var(--text); display: flex; height: 100vh; overflow: hidden; }
-        
-        /* SIDEBAR */
-        .sidebar { width: 260px; background: #111827; color: white; padding: 20px; display: flex; flex-direction: column; flex-shrink: 0; }
-        .brand { text-align: center; margin-bottom: 30px; padding-bottom: 20px; border-bottom: 1px solid #374151; }
-        .brand img { width: 70px; margin-bottom: 10px; }
-        .brand h3 { font-size: 14px; font-weight: 700; }
-        .brand p { font-size: 10px; color: #9ca3af; }
-        
-        .menu-btn { background: transparent; border: none; color: #9ca3af; padding: 12px 15px; text-align: left; cursor: pointer; border-radius: 8px; margin-bottom: 5px; font-size: 14px; transition: 0.2s; display: flex; align-items: center; gap: 10px; }
-        .menu-btn:hover, .menu-btn.active { background: #1f2937; color: var(--secondary); }
-        
-        .status-bar { margin-top: auto; padding: 10px; background: #1f2937; border-radius: 6px; font-size: 11px; text-align: center; }
-        .dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: #10b981; margin-right: 5px; }
-        .dot.off { background: #ef4444; }
+    .header-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px; }
+    h2 { font-size: 24px; color: var(--primary); font-weight: 700; }
+    
+    .card { background: var(--card); padding: 25px; border-radius: 16px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); margin-bottom: 20px; border: 1px solid var(--border); }
+    
+    /* BUTTONS */
+    .btn { 
+      padding: 10px 18px; border: none; border-radius: 8px; cursor: pointer; 
+      font-weight: 600; font-size: 14px; transition: 0.2s; display: inline-flex; align-items: center; gap: 8px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+    }
+    .btn-primary { background: var(--primary); color: white; }
+    .btn-primary:hover { background: #053b2d; }
+    .btn-success { background: var(--accent); color: white; }
+    .btn-danger { background: #ef4444; color: white; padding: 6px 12px; }
+    .btn-secondary { background: #6b7280; color: white; }
+    
+    /* DASHBOARD STATS */
+    .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; margin-bottom: 25px; }
+    .stat-card { background: white; padding: 20px; border-radius: 12px; text-align: center; border: 1px solid var(--border); }
+    .stat-num { font-size: 36px; font-weight: 800; color: var(--primary); margin: 5px 0; }
+    .stat-label { color: #6b7280; font-size: 14px; font-weight: 500; }
 
-        /* MAIN CONTENT */
-        .main { flex: 1; padding: 30px; overflow-y: auto; position: relative; }
-        .view { display: none; animation: fadeIn 0.3s; }
-        .view.active { display: block; }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+    /* TABLES */
+    table { width: 100%; border-collapse: collapse; font-size: 14px; margin-top: 15px; }
+    th { background: #f9fafb; color: #4b5563; font-weight: 600; text-align: left; padding: 12px 15px; border-bottom: 2px solid var(--border); }
+    td { padding: 12px 15px; border-bottom: 1px solid var(--border); color: #374151; }
+    tr:hover { background: #f3f4f6; }
+    
+    /* FORMS */
+    .form-group { margin-bottom: 18px; }
+    .form-group label { display: block; margin-bottom: 8px; font-weight: 600; font-size: 13px; color: #374151; }
+    .form-control { 
+      width: 100%; padding: 10px; border: 2px solid var(--border); border-radius: 8px; font-size: 14px; 
+      transition: 0.2s; background: #f9fafb;
+    }
+    .form-control:focus { outline: none; border-color: var(--accent); background: white; }
+    .flex { display: flex; gap: 20px; flex-wrap: wrap; }
+    .flex-1 { flex: 1; min-width: 200px; }
+    
+    .summary-box { background: #f0fdf4; padding: 15px; border-radius: 10px; border: 1px solid #bbf7d0; margin-top: 20px; }
+    .summary-row { display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 13px; }
+    .summary-total { font-size: 18px; font-weight: 800; color: var(--primary); border-top: 2px dashed #bbf7d0; padding-top: 10px; margin-top: 8px; }
 
-        .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px; flex-wrap: wrap; gap: 10px; }
-        h2 { font-size: 24px; color: var(--primary); font-weight: 800; }
-        
-        .card { background: var(--white); padding: 25px; border-radius: 12px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); border: 1px solid var(--border); margin-bottom: 20px; }
-        
-        /* BUTTONS */
-        .btn { padding: 10px 16px; border: none; border-radius: 8px; cursor: pointer; font-weight: 600; font-size: 13px; transition: 0.2s; display: inline-flex; align-items: center; gap: 6px; text-decoration: none; }
-        .btn-primary { background: var(--primary); color: white; }
-        .btn-success { background: var(--secondary); color: white; }
-        .btn-danger { background: #ef4444; color: white; }
-        .btn-outline { border: 1px solid var(--primary); color: var(--primary); background: white; }
-        .btn-print { background: #4b5563; color: white; }
-        .btn:hover { opacity: 0.9; }
-        
-        /* DASHBOARD STATS */
-        .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; margin-bottom: 25px; }
-        .stat-card { background: white; padding: 20px; border-radius: 10px; text-align: center; border: 1px solid var(--border); cursor: pointer; transition: 0.2s; }
-        .stat-card:hover { transform: translateY(-3px); box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
-        .stat-num { font-size: 32px; font-weight: 800; color: var(--primary); margin: 10px 0; }
-        
-        /* TABLES & FORMS */
-        table { width: 100%; border-collapse: collapse; font-size: 13px; margin-top: 10px; }
-        th { background: #f9fafb; padding: 12px; text-align: left; border-bottom: 2px solid var(--border); color: #4b5563; }
-        td { padding: 12px; border-bottom: 1px solid var(--border); }
-        
-        .form-group { margin-bottom: 15px; }
-        .form-group label { display: block; margin-bottom: 5px; font-weight: 600; font-size: 12px; color: #4b5563; }
-        .input-text { width: 100%; padding: 10px; border: 1px solid var(--border); border-radius: 6px; font-size: 13px; }
-        .input-text:focus { outline: none; border-color: var(--secondary); box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.1); }
-        
-        .flex-row { display: flex; gap: 15px; flex-wrap: wrap; }
-        .flex-1 { flex: 1; min-width: 200px; }
-        
-        .summary-box { background: #f0fdf4; padding: 15px; border-radius: 8px; margin-top: 20px; border: 1px solid #bbf7d0; }
-        .summary-row { display: flex; justify-content: space-between; margin-bottom: 5px; font-size: 13px; }
-        .total-row { font-size: 18px; font-weight: 800; color: var(--primary); border-top: 1px dashed #bbf7d0; padding-top: 10px; margin-top: 5px; }
+    /* PDF TEMPLATE */
+    #pdf-template { display: none; padding: 40px 50px; font-family: 'Times New Roman', serif; background: white; color: black; }
+    
+    .kop-surat { display: flex; align-items: center; border-bottom: 4px double black; padding-bottom: 15px; margin-bottom: 20px; }
+    .kop-logo { width: 80px; margin-right: 20px; }
+    .kop-text h1 { margin: 0; font-size: 24px; text-transform: uppercase; letter-spacing: 1px; color: var(--primary); }
+    .kop-text p { margin: 3px 0 0; font-size: 12px; color: #333; font-weight: bold; }
+    .kop-text small { display: block; margin-top: 4px; font-size: 10px; color: #555; }
 
-        .sig-box { background: #f8fafc; padding: 15px; border-radius: 8px; border: 1px solid #e2e8f0; margin: 20px 0; }
-        .sig-title { font-size: 12px; font-weight: bold; margin-bottom: 10px; color: #64748b; }
+    .pdf-title { text-align: center; margin: 25px 0; }
+    .pdf-title h3 { margin: 0; font-size: 18px; text-decoration: underline; }
+    
+    .pdf-meta { width: 100%; margin-bottom: 20px; font-size: 12px; }
+    .pdf-meta td { border: none; padding: 3px; vertical-align: top; }
+    
+    .pdf-table { width: 100%; border-collapse: collapse; margin: 20px 0; font-size: 11px; }
+    .pdf-table th { background: #e5e7eb; color: black; border: 1px solid black; padding: 8px; font-weight: bold; text-align: center; }
+    .pdf-table td { border: 1px solid black; padding: 8px; }
+    
+    .pdf-summary { text-align: right; font-size: 12px; margin-top: 10px; }
+    .pdf-summary td { border: none; padding: 2px; text-align: right; }
+    
+    .pdf-foot { margin-top: 40px; font-size: 10px; color: #666; text-align: center; border-top: 1px solid #ccc; padding-top: 10px; }
 
-        /* PDF PREVIEW & PRINT STYLES */
-        #pdf-container { display: none; }
-        
-        .pdf-page {
-            width: 210mm; min-height: 297mm; padding: 20mm; background: white; font-family: 'Times New Roman', serif;
-            position: relative; color: #000; line-height: 1.4; margin: 0 auto;
-        }
-        
-        .pdf-header { display: flex; align-items: center; border-bottom: 3px double #000; padding-bottom: 15px; margin-bottom: 20px; }
-        .pdf-logo { width: 70px; margin-right: 15px; }
-        .pdf-company { flex: 1; text-align: center; }
-        .pdf-company h1 { font-size: 20px; margin: 0; text-transform: uppercase; }
-        .pdf-company p { font-size: 11px; margin: 2px 0; }
-        
-        .pdf-meta { width: 100%; margin-bottom: 20px; font-size: 12px; }
-        .pdf-meta td { border: none; padding: 4px; vertical-align: top; }
-        
-        .pdf-title { text-align: center; margin: 25px 0; text-decoration: underline; font-weight: bold; font-size: 16px; }
-        .pdf-body { font-size: 12px; text-align: justify; margin-bottom: 20px; }
-        
-        .pdf-table { width: 100%; border-collapse: collapse; margin: 15px 0; font-size: 11px; }
-        .pdf-table th, .pdf-table td { border: 1px solid #000; padding: 8px; text-align: left; }
-        .pdf-table th { background: #eee; text-align: center; }
-        
-        .pdf-signature-block { margin-top: 40px; text-align: right; font-size: 12px; }
-        .sig-space { height: 70px; }
-        .sig-name { font-weight: bold; text-decoration: underline; margin-top: 5px; }
-
-        /* PRINT MEDIA QUERY */
-        @media print {
-            body { background: white; height: auto; overflow: visible; }
-            .sidebar, .header, .btn, .status-bar, .no-print { display: none !important; }
-            .main { padding: 0; margin: 0; width: 100%; overflow: visible; }
-            .view { display: none !important; }
-            #preview { display: block !important; }
-            #preview-box { box-shadow: none; margin: 0; width: 100%; background: white; }
-            .pdf-page { width: 100%; min-height: auto; padding: 10mm; box-shadow: none; border: none; }
-        }
-
-        .loading-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255,255,255,0.9); display: none; justify-content: center; align-items: center; z-index: 9999; flex-direction: column; }
-        .spinner { width: 40px; height: 40px; border: 4px solid #f3f3f3; border-top: 4px solid var(--primary); border-radius: 50%; animation: spin 1s linear infinite; }
-        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-    </style>
+    .empty-state { text-align: center; padding: 40px; color: #9ca3af; }
+    .loading { text-align: center; padding: 40px; color: var(--primary); }
+    
+    /* Responsive */
+    @media (max-width: 768px) {
+      .layout { flex-direction: column; }
+      .sidebar { width: 100%; }
+      .main { padding: 15px; }
+    }
+  </style>
 </head>
 <body>
-
-    <div id="loading" class="loading-overlay">
-        <div class="spinner"></div>
-        <p style="margin-top: 15px; font-weight: 600;">Sedang memproses...</p>
-    </div>
-
-    <aside class="sidebar no-print">
-        <div class="brand">
-            <img src="logo.png" alt="Logo" onerror="this.style.display='none'">
-            <h3>CV REZEKI AMANAH JAYA</h3>
-            <p>Supplier & Waste Solution Partner</p>
-        </div>
-        <button class="menu-btn active" onclick="nav('dashboard')"> Dashboard</button>
-        <button class="menu-btn" onclick="nav('po')">📦 Purchase Order</button>
-        <button class="menu-btn" onclick="nav('invoice')">🧾 Invoice</button>
-        <button class="menu-btn" onclick="nav('penawaran')">📄 Penawaran</button>
-        <div class="status-bar">
-            <span id="status-dot" class="dot"></span> <span id="status-text">Local Mode</span>
-        </div>
+  <div class="layout">
+    <!-- SIDEBAR -->
+    <aside class="sidebar">
+      <div class="logo-area">
+        <img src="logo.png" alt="Logo" class="logo-img" onerror="this.style.display='none'">
+        <div class="company-name">CV REZEKI AMANAH JAYA</div>
+        <div class="company-sub">Supplier & Waste Solution Partner</div>
+      </div>
+      
+      <button class="nav-btn active" onclick="app.nav('dashboard')">📊 Dashboard</button>
+      <button class="nav-btn" onclick="app.nav('po')">📦 Purchase Order</button>
+      <button class="nav-btn" onclick="app.nav('invoice')">🧾 Invoice</button>
+      <button class="nav-btn" onclick="app.nav('penawaran')">📄 Penawaran</button>
+      
+      <div class="status-indicator">
+        <div class="status-dot" id="status-dot"></div>
+        <span id="status-text">Connecting...</span>
+      </div>
     </aside>
 
+    <!-- MAIN -->
     <main class="main">
-        <!-- DASHBOARD -->
-        <section id="dashboard" class="view active">
-            <div class="header"><h2>Dashboard</h2></div>
-            <div class="stats-grid">
-                <div class="stat-card" onclick="nav('po')"><h3>Purchase Order</h3><div class="stat-num" id="count-po">0</div><button class="btn btn-primary">Buat Baru</button></div>
-                <div class="stat-card" onclick="nav('invoice')"><h3>Invoice</h3><div class="stat-num" id="count-inv">0</div><button class="btn btn-primary">Buat Baru</button></div>
-                <div class="stat-card" onclick="nav('penawaran')"><h3>Penawaran</h3><div class="stat-num" id="count-pen">0</div><button class="btn btn-primary">Buat Baru</button></div>
-            </div>
-            <div class="card">
-                <h3>📄 Dokumen Terakhir</h3>
-                <table id="tbl-recent"><thead><tr><th>No</th><th>Tipe</th><th>Klien</th><th>Total</th><th>Aksi</th></tr></thead><tbody id="body-recent"></tbody></table>
-            </div>
-        </section>
-
-        <!-- LIST VIEWS -->
-        <section id="po" class="view"><div class="header"><h2>Purchase Order</h2><button class="btn btn-primary" onclick="openForm('PO')">+ Buat PO</button></div><div class="card"><table id="tbl-po"><thead><tr><th>No</th><th>Supplier</th><th>Tanggal</th><th>Total</th><th>Aksi</th></tr></thead><tbody id="body-po"></tbody></table></div></section>
-        <section id="invoice" class="view"><div class="header"><h2>Invoice</h2><button class="btn btn-primary" onclick="openForm('Invoice')">+ Buat Invoice</button></div><div class="card"><table id="tbl-inv"><thead><tr><th>No</th><th>Klien</th><th>Tanggal</th><th>Total</th><th>Aksi</th></tr></thead><tbody id="body-inv"></tbody></table></div></section>
-        <section id="penawaran" class="view"><div class="header"><h2>Penawaran</h2><button class="btn btn-primary" onclick="openForm('Penawaran')">+ Buat Penawaran</button></div><div class="card"><table id="tbl-pen"><thead><tr><th>No</th><th>Klien</th><th>Tanggal</th><th>Total</th><th>Aksi</th></tr></thead><tbody id="body-pen"></tbody></table></div></section>
-
-        <!-- FORM EDITOR -->
-        <section id="editor" class="view">
-            <div class="header"><h2 id="form-title">Buat Dokumen</h2><button class="btn btn-outline" onclick="nav('dashboard')">Batal</button></div>
-            <div class="card">
-                <input type="hidden" id="doc-id"><input type="hidden" id="doc-type">
-                <div class="flex-row">
-                    <div class="form-group flex-1"><label>Pihak / Klien</label><input type="text" id="inp-pihak" class="input-text" placeholder="PT. Maju Jaya"></div>
-                    <div class="form-group flex-1"><label>Alamat</label><input type="text" id="inp-alamat" class="input-text" placeholder="Jl. Raya No. 1"></div>
-                </div>
-                <div class="flex-row">
-                    <div class="form-group flex-1"><label>Nomor Dokumen</label><input type="text" id="inp-no" class="input-text"></div>
-                    <div class="form-group"><label>Tanggal</label><input type="date" id="inp-tgl" class="input-text"></div>
-                    <div class="form-group"><label>Jatuh Tempo</label><input type="date" id="inp-jt" class="input-text"></div>
-                </div>
-
-                <!-- SIGNATURE INPUT (HANYA 1) -->
-                <div class="sig-box">
-                    <div class="sig-title">🖋️ Penanda Tangan</div>
-                    <div class="form-group">
-                        <label>Nama Direktur Utama</label>
-                        <input type="text" id="inp-direktur" class="input-text" placeholder="Nama Lengkap Direktur Utama">
-                    </div>
-                </div>
-
-                <h4 style="margin: 15px 0 10px;">Daftar Item</h4>
-                <table id="tbl-items"><thead><tr><th>Deskripsi</th><th width="70">Qty</th><th width="70">Satuan</th><th width="120">Harga</th><th width="120">Subtotal</th><th width="40"></th></tr></thead><tbody id="body-items"></tbody></table>
-                <button class="btn btn-outline" style="margin-top:10px" onclick="addItem()">+ Tambah Baris</button>
-
-                <div class="summary-box">
-                    <div class="summary-row"><span>Subtotal</span><span id="val-sub">Rp 0</span></div>
-                    <div class="summary-row"><span>PPN (%)</span><input type="number" id="inp-ppn-pct" class="input-text" style="width:60px; display:inline" value="0" oninput="calc()"></div>
-                    <div class="summary-row"><span>Nilai PPN</span><span id="val-ppn">Rp 0</span></div>
-                    <div class="summary-row"><span>Diskon</span><input type="number" id="inp-diskon" class="input-text" style="width:100px; display:inline" value="0" oninput="calc()"></div>
-                    <div class="summary-row total-row"><span>TOTAL</span><span id="val-total">Rp 0</span></div>
-                </div>
-
-                <div class="flex-row" style="margin-top:15px">
-                    <div class="form-group flex-1"><label>Catatan</label><textarea id="inp-catatan" class="input-text" rows="2"></textarea></div>
-                    <div class="form-group flex-1"><label>Syarat & Ketentuan</label><textarea id="inp-syarat" class="input-text" rows="2"></textarea></div>
-                </div>
-                <div style="text-align:right; margin-top:15px"><button class="btn btn-success" onclick="saveDoc()">💾 Simpan & Lihat PDF</button></div>
-            </div>
-        </section>
-
-        <!-- PREVIEW SECTION -->
-        <section id="preview" class="view">
-            <div class="header no-print">
-                <h2>Preview Dokumen</h2>
-                <div>
-                    <button class="btn btn-primary" onclick="downloadPDF()">📥 Download PDF</button>
-                    <button class="btn btn-print" onclick="printDoc()">🖨️ Cetak (Browser)</button>
-                    <button class="btn btn-outline" onclick="nav('dashboard')">Kembali</button>
-                </div>
-            </div>
-            <div style="background:#ccc; padding:20px; overflow:auto; max-height:80vh; text-align:center;">
-                <div id="preview-box" style="display:inline-block; box-shadow: 0 0 10px rgba(0,0,0,0.2);"></div>
-            </div>
-        </section>
-    </main>
-
-    <!-- HIDDEN PDF TEMPLATE -->
-    <div id="pdf-container">
-        <div id="pdf-template" class="pdf-page">
-            <div class="pdf-header">
-                <img src="logo.png" class="pdf-logo" onerror="this.style.display='none'">
-                <div class="pdf-company">
-                    <h1>CV REZEKI AMANAH JAYA</h1>
-                    <p>Supplier & Waste Solution Partner</p>
-                    <p style="font-size:9px; color:#555;">Flamingo Fla 06 No. 19, Sukamantri, Pasarkemis, Kab. Tangerang | Telp: 021-12345678</p>
-                </div>
-            </div>
-            <table class="pdf-meta">
-                <tr><td width="15%"><strong>Nomor</strong></td><td width="2%">:</td><td id="pdf-no"></td><td width="15%"><strong>Tanggal</strong></td><td width="2%">:</td><td id="pdf-tgl"></td></tr>
-                <tr><td><strong>Kepada</strong></td><td>:</td><td id="pdf-pihak"></td><td><strong>Jatuh Tempo</strong></td><td>:</td><td id="pdf-jt"></td></tr>
-                <tr><td><strong>Alamat</strong></td><td>:</td><td id="pdf-alamat" colspan="4"></td></tr>
-            </table>
-            <div class="pdf-title" id="pdf-title">SURAT PENAWARAN</div>
-            <div class="pdf-body" id="pdf-body-text"></div>
-            <table class="pdf-table">
-                <thead><tr><th>No</th><th>Deskripsi</th><th>Qty</th><th>Satuan</th><th>Harga (Rp)</th><th>Subtotal (Rp)</th></tr></thead>
-                <tbody id="pdf-items"></tbody>
-            </table>
-            <table class="pdf-meta" style="width:50%; margin-left:auto; margin-top:10px; text-align:right;">
-                <tr><td>Subtotal</td><td width="20%"><span id="pdf-sub"></span></td></tr>
-                <tr><td>PPN (<span id="pdf-ppn-pct">0</span>%)</td><td><span id="pdf-ppn"></span></td></tr>
-                <tr><td>Diskon</td><td><span id="pdf-diskon"></span></td></tr>
-                <tr style="font-size:14px; font-weight:bold; border-top:1px solid #000;"><td>TOTAL</td><td><span id="pdf-total"></span></td></tr>
-            </table>
-            <div style="margin-top:20px; font-size:11px;"><strong>Catatan:</strong> <span id="pdf-catatan"></span><br><strong>Syarat:</strong> <span id="pdf-syarat"></span></div>
-            
-            <!-- TANDA TANGAN (HANYA 1) -->
-            <div class="pdf-signature-block">
-                <p>Tangerang, <span id="pdf-tgl-ttd"></span></p>
-                <p><strong>CV REZEKI AMANAH JAYA</strong></p>
-                <div class="sig-space"></div>
-                <div class="sig-name" id="pdf-direktur">_______________</div>
-                <div style="font-size:11px; color:#555;">Direktur Utama</div>
-            </div>
+      
+      <!-- DASHBOARD -->
+      <section id="view-dashboard" class="view active">
+        <div class="header-row">
+          <h2>Dashboard</h2>
+          <div style="font-size:14px; color:#666;" id="current-date">...</div>
         </div>
+        
+        <div class="stats">
+          <div class="stat-card">
+            <div class="stat-num" id="count-po">0</div>
+            <div class="stat-label">Purchase Order</div>
+            <button class="btn btn-primary" style="margin-top:10px; width:100%" onclick="app.openForm('PO')">+ Buat PO</button>
+          </div>
+          <div class="stat-card">
+            <div class="stat-num" id="count-invoice">0</div>
+            <div class="stat-label">Invoice</div>
+            <button class="btn btn-primary" style="margin-top:10px; width:100%" onclick="app.openForm('Invoice')">+ Buat Invoice</button>
+          </div>
+          <div class="stat-card">
+            <div class="stat-num" id="count-penawaran">0</div>
+            <div class="stat-label">Penawaran</div>
+            <button class="btn btn-primary" style="margin-top:10px; width:100%" onclick="app.openForm('Penawaran')">+ Buat Penawaran</button>
+          </div>
+        </div>
+
+        <div class="card">
+          <h3>📄 Dokumen Terbaru</h3>
+          <div id="loading-dashboard" class="loading">Memuat data...</div>
+          <table id="table-dashboard" style="display:none;">
+            <thead><tr><th>Nomor</th><th>Tipe</th><th>Pihak</th><th>Tanggal</th><th>Total</th><th>Aksi</th></tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- LIST VIEWS -->
+      <section id="view-po" class="view">
+        <div class="header-row"><h2>Kelola Purchase Order</h2><button class="btn btn-primary" onclick="app.openForm('PO')">+ Buat PO Baru</button></div>
+        <div class="card">
+          <div id="loading-po" class="loading">Memuat data...</div>
+          <table id="table-po" style="display:none;"><thead><tr><th>No. PO</th><th>Supplier</th><th>Tanggal</th><th>Total</th><th>Aksi</th></tr></thead><tbody></tbody></table>
+        </div>
+      </section>
+      
+      <section id="view-invoice" class="view">
+        <div class="header-row"><h2>Kelola Invoice</h2><button class="btn btn-primary" onclick="app.openForm('Invoice')">+ Buat Invoice Baru</button></div>
+        <div class="card">
+          <div id="loading-invoice" class="loading">Memuat data...</div>
+          <table id="table-invoice" style="display:none;"><thead><tr><th>No. Invoice</th><th>Klien</th><th>Tanggal</th><th>Total</th><th>Aksi</th></tr></thead><tbody></tbody></table>
+        </div>
+      </section>
+
+      <section id="view-penawaran" class="view">
+        <div class="header-row"><h2>Kelola Surat Penawaran</h2><button class="btn btn-primary" onclick="app.openForm('Penawaran')">+ Buat Penawaran Baru</button></div>
+        <div class="card">
+          <div id="loading-penawaran" class="loading">Memuat data...</div>
+          <table id="table-penawaran" style="display:none;"><thead><tr><th>No. Penawaran</th><th>Klien</th><th>Tanggal</th><th>Total</th><th>Aksi</th></tr></thead><tbody></tbody></table>
+        </div>
+      </section>
+
+      <!-- FORM -->
+      <section id="view-form" class="view">
+        <div class="header-row">
+          <h2 id="form-title">Buat Dokumen Baru</h2>
+          <button class="btn btn-secondary" onclick="app.nav('dashboard')">Batal</button>
+        </div>
+        <div class="card">
+          <input type="hidden" id="doc-id">
+          <input type="hidden" id="doc-type">
+          
+          <div class="flex">
+            <div class="form-group flex-1"><label>Nama Klien / Supplier</label><input type="text" id="doc-pihak" class="form-control" placeholder="PT. ..."></div>
+            <div class="form-group flex-1"><label>Alamat</label><input type="text" id="doc-alamat" class="form-control" placeholder="Jl. ..."></div>
+          </div>
+          
+          <div class="flex">
+            <div class="form-group flex-1"><label>Nomor Dokumen</label><input type="text" id="doc-no" class="form-control" placeholder="PO-001"></div>
+            <div class="form-group"><label>Tanggal</label><input type="date" id="doc-tanggal" class="form-control"></div>
+            <div class="form-group"><label>Jatuh Tempo</label><input type="date" id="doc-jt" class="form-control"></div>
+          </div>
+
+          <div style="margin: 20px 0; border-top: 1px solid #eee; padding-top: 10px;">
+            <label style="font-weight:700; display:block; margin-bottom:10px;">Daftar Item</label>
+            <table id="item-table">
+              <thead><tr><th>Deskripsi</th><th width="70">Qty</th><th width="70">Satuan</th><th width="120">Harga</th><th width="120">Subtotal</th><th width="40"></th></tr></thead>
+              <tbody id="item-body"></tbody>
+            </table>
+            <button class="btn btn-secondary" style="margin-top:10px; font-size:12px;" onclick="app.addItem()">+ Tambah Item</button>
+          </div>
+
+          <div class="summary-box">
+            <div class="summary-row"><span>Subtotal</span><span id="sum-subtotal">Rp 0</span></div>
+            <div class="summary-row"><span>PPN (%)</span><input type="number" id="sum-ppn-pct" class="form-control" style="width:50px; padding:3px; display:inline-block;" value="0" oninput="app.calc()"></div>
+            <div class="summary-row"><span>Nilai PPN</span><span id="sum-ppn">Rp 0</span></div>
+            <div class="summary-row"><span>Diskon</span><input type="number" id="sum-diskon" class="form-control" style="width:100px; padding:3px; display:inline-block;" value="0" oninput="app.calc()"></div>
+            <div class="summary-total summary-row"><span>TOTAL</span><span id="sum-total">Rp 0</span></div>
+          </div>
+
+          <div class="flex" style="margin-top:20px;">
+            <div class="form-group flex-1"><label>Catatan</label><textarea id="doc-catatan" class="form-control" rows="2"></textarea></div>
+            <div class="form-group flex-1"><label>Syarat & Ketentuan</label><textarea id="doc-syarat" class="form-control" rows="2"></textarea></div>
+          </div>
+
+          <div style="text-align:right; margin-top:20px;">
+            <button class="btn btn-success" id="btn-save" onclick="app.save()">💾 Simpan & Lihat</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- PREVIEW -->
+      <section id="view-preview" class="view">
+        <div class="header-row">
+          <h2>Preview Dokumen</h2>
+          <div>
+            <button class="btn btn-primary" onclick="app.generatePDF()">🖨️ Download PDF</button>
+            <button class="btn btn-secondary" onclick="app.nav('dashboard')">Kembali</button>
+          </div>
+        </div>
+        <div id="preview-container" style="background:white; padding:20px; border:1px solid #ddd; min-height: 500px;"></div>
+      </section>
+
+    </main>
+  </div>
+
+  <!-- PDF TEMPLATE -->
+  <div id="pdf-template">
+    <div class="kop-surat">
+      <img src="logo.png" class="kop-logo" onerror="this.style.display='none'">
+      <div class="kop-text">
+        <h1>CV REZEKI AMANAH JAYA</h1>
+        <p>Supplier & Waste Solution Partner</p>
+        <small>Flamingo Fla 06 No. 19, Sukamantri, Pasarkemis, Kab. Tangerang  | Telp: 021-12345678 | Email: info@rezekiamanahjaya.com</small>
+      </div>
     </div>
 
-    <script>
-        // 1. CONFIG & STATE
-        let db = null;
+    <div class="pdf-title">
+      <h3 id="pdf-type">DOKUMEN</h3>
+    </div>
+
+    <table class="pdf-meta">
+      <tr>
+        <td width="15%"><strong>No. Dokumen</strong></td><td width="2%">:</td><td id="pdf-no"></td>
+        <td width="15%"><strong>Tanggal</strong></td><td width="2%">:</td><td id="pdf-tgl"></td>
+      </tr>
+      <tr>
+        <td><strong>Kepada</strong></td><td>:</td><td id="pdf-pihak"></td>
+        <td><strong>Alamat</strong></td><td>:</td><td id="pdf-alamat"></td>
+      </tr>
+      <tr>
+        <td colspan="3"></td>
+        <td><strong>Jatuh Tempo</strong></td><td>:</td><td id="pdf-jt"></td>
+      </tr>
+    </table>
+
+    <table class="pdf-table">
+      <thead>
+        <tr>
+          <th style="width:5%">No</th>
+          <th style="width:40%">Deskripsi</th>
+          <th style="width:10%">Qty</th>
+          <th style="width:10%">Satuan</th>
+          <th style="width:15%">Harga</th>
+          <th style="width:20%">Subtotal</th>
+        </tr>
+      </thead>
+      <tbody id="pdf-items"></tbody>
+    </table>
+
+    <table class="pdf-summary" style="width:40%; margin-left:auto;">
+      <tr><td>Subtotal</td><td width="15%"><span id="pdf-sub"></span></td></tr>
+      <tr><td>PPN (<span id="pdf-ppn-pct"></span>%)</td><td><span id="pdf-ppn"></span></td></tr>
+      <tr><td>Diskon</td><td><span id="pdf-disk"></span></td></tr>
+      <tr style="font-size:14px; font-weight:bold; border-top:1px solid black;"><td>TOTAL</td><td><span id="pdf-total"></span></td></tr>
+    </table>
+
+    <div style="margin-top:30px; font-size:11px;">
+      <strong>Catatan:</strong> <span id="pdf-catatan"></span><br>
+      <strong>Syarat:</strong> <span id="pdf-syarat"></span>
+    </div>
+
+    <div class="pdf-foot">Dokumen ini dicetak otomatis oleh Sistem Dokumen CV Rezeki Amanah Jaya © 2026</div>
+  </div>
+
+  <script>
+    // ============================================
+    // KONFIGURASI FIREBASE - GANTI DENGAN DATA ANDA
+    // ============================================
+    const firebaseConfig = {
+      apiKey: "AIzaSyAK212qeQsvVdD4Ng0SWWSCL_Vp5uDaJtM",
+  authDomain: "dbcvamanah.firebaseapp.com",
+  projectId: "dbcvamanah",
+  storageBucket: "dbcvamanah.firebasestorage.app",
+  messagingSenderId: "192068380162",
+  appId: "1:192068380162:web:c2785ed3d3cc32daece91b",
+  measurementId: "G-ZPH7G9Y93B"
+
+    };
+
+    // Initialize Firebase
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
+
+    const fmt = v => new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR' }).format(Number(v)||0);
+    const parse = v => Number(String(v).replace(/[^\d]/g,'')) || 0;
+
+    const app = {
+      docs: [],
+      lastDoc: null,
+      unsubscribe: null,
+      
+      async init() {
+        const dateOpts = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+        document.getElementById('current-date').textContent = new Date().toLocaleDateString('id-ID', dateOpts);
+        
+        // Monitor connection status
+        this.monitorConnection();
+        
+        // Load data from Firestore
+        await this.loadData();
+        
+        this.nav('dashboard');
+      },
+
+      monitorConnection() {
+        const statusDot = document.getElementById('status-dot');
+        const statusText = document.getElementById('status-text');
+        
+        firebase.firestore().collection('docs').limit(1).onSnapshot(
+          () => {
+            statusDot.classList.remove('offline');
+            statusText.textContent = 'Online - Tersinkron';
+          },
+          (error) => {
+            statusDot.classList.add('offline');
+            statusText.textContent = 'Offline - Cek koneksi';
+            console.error('Connection error:', error);
+          }
+        );
+      },
+
+      async loadData() {
         try {
-            const firebaseConfig = {
-                apiKey: "AIzaSyAK212qeQsvVdD4Ng0SWWSCL_Vp5uDaJtM",
-                authDomain: "dbcvamanah.firebaseapp.com",
-                projectId: "dbcvamanah",
-                storageBucket: "dbcvamanah.firebasestorage.app",
-                messagingSenderId: "192068380162",
-                appId: "1:192068380162:web:c2785ed3d3cc32daece91b",
-		measurementId: "G-ZPH7G9Y93B"
-            };
-            firebase.initializeApp(firebaseConfig);
-            db = firebase.firestore();
-            document.getElementById('status-text').innerText = "Online (Firebase)";
-        } catch(e) {
-            console.log("Firebase gagal load, menggunakan LocalStorage.");
-            document.getElementById('status-dot').classList.add('off');
-            document.getElementById('status-text').innerText = "Offline Mode (Local)";
-        }
-
-        let docs = [];
-
-        // 2. CORE FUNCTIONS
-        function nav(viewId) {
-            document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
-            document.querySelectorAll('.menu-btn').forEach(b => b.classList.remove('active'));
-            document.getElementById(viewId).classList.add('active');
-            const map = {'dashboard':0, 'po':1, 'invoice':2, 'penawaran':3};
-            if(map[viewId] !== undefined) document.querySelectorAll('.menu-btn')[map[viewId]].classList.add('active');
-            if(viewId === 'dashboard') renderDashboard();
-            if(viewId === 'po') renderList('PO');
-            if(viewId === 'invoice') renderList('Invoice');
-            if(viewId === 'penawaran') renderList('Penawaran');
-        }
-
-        async function loadData() {
-            try {
-                if(db) {
-                    const snap = await db.collection('docs').orderBy('created', 'desc').get();
-                    docs = []; snap.forEach(d => docs.push({id: d.id, ...d.data()}));
-                } else {
-                    docs = JSON.parse(localStorage.getItem('cvraj_docs') || '[]');
-                }
-                renderDashboard();
-            } catch(e) { console.error("Gagal load data:", e); }
-        }
-
-        async function saveData(doc) {
-            try {
-                if(db) {
-                    if(doc.id) await db.collection('docs').doc(doc.id).set(doc);
-                    else { doc.created = firebase.firestore.FieldValue.serverTimestamp(); const ref = await db.collection('docs').add(doc); doc.id = ref.id; }
-                } else {
-                    if(!doc.id) doc.id = Date.now().toString();
-                    doc.created = Date.now();
-                    const idx = docs.findIndex(d => d.id === doc.id);
-                    if(idx >= 0) docs[idx] = doc; else docs.unshift(doc);
-                    localStorage.setItem('cvraj_docs', JSON.stringify(docs));
-                }
-                return true;
-            } catch(e) { alert("Gagal menyimpan: " + e.message); return false; }
-        }
-
-        async function deleteData(id) {
-            if(!confirm("Hapus dokumen ini?")) return;
-            try {
-                if(db) await db.collection('docs').doc(id).delete();
-                else { docs = docs.filter(d => d.id !== id); localStorage.setItem('cvraj_docs', JSON.stringify(docs)); }
-                loadData();
-            } catch(e) { alert("Gagal hapus"); }
-        }
-
-        // 3. UI RENDERING
-        function renderDashboard() {
-            document.getElementById('count-po').innerText = docs.filter(d => d.type === 'PO').length;
-            document.getElementById('count-inv').innerText = docs.filter(d => d.type === 'Invoice').length;
-            document.getElementById('count-pen').innerText = docs.filter(d => d.type === 'Penawaran').length;
-            const tbody = document.getElementById('body-recent');
-            tbody.innerHTML = docs.slice(0, 5).map(d => `<tr><td>${d.no}</td><td><span style="background:#e2e8f0; padding:2px 8px; border-radius:4px; font-size:11px;">${d.type}</span></td><td>${d.pihak}</td><td style="text-align:right">${fmt(d.total)}</td><td><button class="btn btn-primary" style="padding:4px 8px; font-size:11px" onclick="previewDoc('${d.id}')">👁️</button></td></tr>`).join('');
-        }
-
-        function renderList(type) {
-            const list = docs.filter(d => d.type === type);
-            const tbody = document.getElementById(type === 'PO' ? 'body-po' : type === 'Invoice' ? 'body-inv' : 'body-pen');
-            tbody.innerHTML = list.map(d => `<tr><td>${d.no}</td><td>${d.pihak}</td><td>${d.tanggal}</td><td style="text-align:right">${fmt(d.total)}</td><td><button class="btn btn-primary" style="padding:4px 8px; font-size:11px" onclick="previewDoc('${d.id}')">👁️</button><button class="btn btn-danger" style="padding:4px 8px; font-size:11px" onclick="deleteData('${d.id}')">🗑️</button></td></tr>`).join('');
-        }
-
-        // 4. FORM LOGIC
-        function openForm(type) {
-            document.getElementById('form-title').innerText = `Buat ${type} Baru`;
-            document.getElementById('doc-type').value = type;
-            document.getElementById('doc-id').value = '';
-            document.getElementById('inp-no').value = `${type.substring(0,3).toUpperCase()}-${String(docs.filter(d=>d.type===type).length + 1).padStart(3,'0')}`;
-            document.getElementById('inp-tgl').value = new Date().toISOString().split('T')[0];
-            ['inp-pihak','inp-alamat','inp-jt','inp-catatan','inp-syarat'].forEach(id => document.getElementById(id).value = '');
-            document.getElementById('body-items').innerHTML = '';
-            document.getElementById('inp-ppn-pct').value = 0;
-            document.getElementById('inp-diskon').value = 0;
-            // Load nama direktur dari memory
-            document.getElementById('inp-direktur').value = localStorage.getItem('sig_direktur') || '';
-            addItem(); calc(); nav('editor');
-        }
-
-        function addItem() {
-            const tr = document.createElement('tr');
-            tr.innerHTML = `<td><input type="text" class="input-text item-desc" placeholder="Nama Barang"></td><td><input type="number" class="input-text item-qty" value="1" oninput="calc()"></td><td><input type="text" class="input-text item-sat" value="Pcs"></td><td><input type="number" class="input-text item-price" value="0" oninput="calc()"></td><td style="text-align:right; font-weight:bold" class="item-sub">0</td><td><button class="btn btn-danger" style="padding:2px 6px" onclick="this.closest('tr').remove(); calc()">X</button></td>`;
-            document.getElementById('body-items').appendChild(tr); calc();
-        }
-
-        function calc() {
-            let sub = 0;
-            document.querySelectorAll('#body-items tr').forEach(tr => {
-                const q = parseFloat(tr.querySelector('.item-qty').value) || 0;
-                const p = parseFloat(tr.querySelector('.item-price').value) || 0;
-                const s = q * p;
-                tr.querySelector('.item-sub').innerText = fmtNum(s); sub += s;
+          this.unsubscribe = db.collection('docs')
+            .orderBy('created', 'desc')
+            .onSnapshot(snapshot => {
+              this.docs = [];
+              snapshot.forEach(doc => {
+                this.docs.push({ id: doc.id, ...doc.data() });
+              });
+              this.renderAll();
             });
-            const ppnPct = parseFloat(document.getElementById('inp-ppn-pct').value) || 0;
-            const diskon = parseFloat(document.getElementById('inp-diskon').value) || 0;
-            const ppnVal = sub * (ppnPct / 100);
-            const total = sub + ppnVal - diskon;
-            document.getElementById('val-sub').innerText = fmt(sub);
-            document.getElementById('val-ppn').innerText = fmt(ppnVal);
-            document.getElementById('val-total').innerText = fmt(total);
+        } catch (error) {
+          console.error('Error loading data:', error);
+          alert('Gagal memuat data dari database. Periksa koneksi internet Anda.');
         }
+      },
 
-        function fmt(n) { return new Intl.NumberFormat('id-ID', {style:'currency', currency:'IDR'}).format(n); }
-        function fmtNum(n) { return new Intl.NumberFormat('id-ID').format(n); }
-        function fmtDate(d) { if(!d) return '-'; const dt = new Date(d); return `${dt.getDate()} ${['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Agu','Sep','Okt','Nov','Des'][dt.getMonth()]} ${dt.getFullYear()}`; }
+      renderAll() {
+        ['dashboard', 'po', 'invoice', 'penawaran'].forEach(t => this.renderList(t));
+        const count = t => this.docs.filter(d => d.type.toLowerCase() === t).length;
+        document.getElementById('count-po').textContent = count('po');
+        document.getElementById('count-invoice').textContent = count('invoice');
+        document.getElementById('count-penawaran').textContent = count('penawaran');
+      },
 
-        // 5. SAVE & PREVIEW
-        async function saveDoc() {
-            const items = [];
-            document.querySelectorAll('#body-items tr').forEach(tr => {
-                items.push({ desc: tr.querySelector('.item-desc').value, qty: parseFloat(tr.querySelector('.item-qty').value), sat: tr.querySelector('.item-sat').value, price: parseFloat(tr.querySelector('.item-price').value) });
+      renderList(type) {
+        const loading = document.getElementById(`loading-${type}`);
+        const table = document.querySelector(`#table-${type}`);
+        const tbody = table?.querySelector('tbody');
+        
+        if (!table || !tbody) return;
+        
+        if (loading) loading.style.display = 'none';
+        table.style.display = 'table';
+        
+        const filter = type === 'dashboard' ? [] : [type.toLowerCase()];
+        const docs = this.docs.filter(d => !filter.length || d.type.toLowerCase() === filter[0]);
+        
+        if (docs.length === 0) {
+          tbody.innerHTML = `<tr><td colspan="6" class="empty-state">Belum ada data</td></tr>`;
+          return;
+        }
+        
+        tbody.innerHTML = docs.map(d => `
+          <tr>
+            <td>${d.no}</td>
+            ${type==='dashboard'?`<td><span style="background:#e0f2fe; color:#0369a1; padding:3px 8px; border-radius:10px; font-size:11px;">${d.type}</span></td>`:''}
+            <td>${d.pihak}</td>
+            <td>${d.tanggal}</td>
+            <td style="text-align:right">${fmt(d.total)}</td>
+            <td>
+              <button class="btn btn-secondary" style="padding:5px 10px; font-size:12px" onclick="app.preview('${d.id}')">👁️</button>
+              <button class="btn btn-danger" style="padding:5px 10px; font-size:12px" onclick="app.del('${d.id}')">🗑️</button>
+            </td>
+          </tr>`).join('');
+      },
+
+      nav(view) {
+        document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+        document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+        document.getElementById(`view-${view}`).classList.add('active');
+        document.querySelector(`.nav-btn[onclick="app.nav('${view}')"]`)?.classList.add('active');
+        if(view !== 'dashboard' && view !== 'form' && view !== 'preview') {
+          this.renderList(view);
+        }
+      },
+
+      openForm(type) {
+        document.getElementById('form-title').textContent = `Buat ${type} Baru`;
+        document.getElementById('doc-type').value = type;
+        document.getElementById('doc-id').value = '';
+        document.getElementById('doc-no').value = `${type.substring(0,3).toUpperCase()}-${String(this.docs.filter(d=>d.type===type).length+1).padStart(3,'0')}`;
+        ['pihak','alamat','jt','catatan','syarat'].forEach(id => document.getElementById(`doc-${id}`).value = '');
+        document.getElementById('doc-tanggal').value = new Date().toISOString().split('T')[0];
+        document.getElementById('sum-ppn-pct').value = '0';
+        document.getElementById('sum-diskon').value = '0';
+        document.getElementById('item-body').innerHTML = '';
+        document.getElementById('btn-save').textContent = '💾 Simpan & Lihat';
+        this.addItem();
+        this.calc();
+        this.nav('form');
+      },
+
+      addItem(desc='', qty=1, sat='Pcs', harga=0) {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td><input type="text" class="form-control item-desc" value="${desc}" style="padding:6px"></td>
+          <td><input type="number" class="form-control item-qty" value="${qty}" min="0" style="padding:6px" oninput="app.calc()"></td>
+          <td><input type="text" class="form-control item-sat" value="${sat}" style="padding:6px; text-align:center"></td>
+          <td><input type="number" class="form-control item-harga" value="${harga}" min="0" style="padding:6px" oninput="app.calc()"></td>
+          <td class="text-right item-sub" style="padding:8px; font-weight:600">Rp 0</td>
+          <td><button class="btn btn-danger" style="padding:4px 8px" onclick="this.closest('tr').remove(); app.calc()">✕</button></td>
+        `;
+        document.getElementById('item-body').appendChild(tr);
+        this.calc();
+      },
+
+      calc() {
+        let sub = 0;
+        document.querySelectorAll('#item-body tr').forEach(tr => {
+          const q = parse(tr.querySelector('.item-qty').value);
+          const h = parse(tr.querySelector('.item-harga').value);
+          const s = q * h;
+          tr.querySelector('.item-sub').textContent = fmt(s);
+          sub += s;
+        });
+        const ppnPct = parse(document.getElementById('sum-ppn-pct').value);
+        const diskon = parse(document.getElementById('sum-diskon').value);
+        const ppnVal = Math.round(sub * (ppnPct/100));
+        const total = sub + ppnVal - diskon;
+        
+        document.getElementById('sum-subtotal').textContent = fmt(sub);
+        document.getElementById('sum-subtotal').dataset.raw = sub;
+        document.getElementById('sum-ppn').textContent = fmt(ppnVal);
+        document.getElementById('sum-total').textContent = fmt(total);
+        document.getElementById('sum-total').dataset.raw = total;
+      },
+
+      async save() {
+        const btnSave = document.getElementById('btn-save');
+        btnSave.disabled = true;
+        btnSave.textContent = 'Menyimpan...';
+        
+        const items = [];
+        document.querySelectorAll('#item-body tr').forEach(tr => {
+          items.push({
+            desc: tr.querySelector('.item-desc').value,
+            qty: parse(tr.querySelector('.item-qty').value),
+            sat: tr.querySelector('.item-sat').value,
+            harga: parse(tr.querySelector('.item-harga').value)
+          });
+        });
+        items.forEach(i => i.sub = i.qty * i.harga);
+
+        const docId = document.getElementById('doc-id').value;
+        const docData = {
+          type: document.getElementById('doc-type').value,
+          no: document.getElementById('doc-no').value,
+          pihak: document.getElementById('doc-pihak').value || '-',
+          alamat: document.getElementById('doc-alamat').value || '-',
+          tanggal: document.getElementById('doc-tanggal').value,
+          jt: document.getElementById('doc-jt').value || '-',
+          items,
+          ppnPct: parse(document.getElementById('sum-ppn-pct').value),
+          diskon: parse(document.getElementById('sum-diskon').value),
+          subtotal: parse(document.getElementById('sum-subtotal').dataset.raw),
+          total: parse(document.getElementById('sum-total').dataset.raw),
+          catatan: document.getElementById('doc-catatan').value,
+          syarat: document.getElementById('doc-syarat').value,
+          updated: firebase.firestore.FieldValue.serverTimestamp()
+        };
+
+        try {
+          if (docId) {
+            // Update existing
+            await db.collection('docs').doc(docId).update(docData);
+          } else {
+            // Create new
+            docData.created = firebase.firestore.FieldValue.serverTimestamp();
+            const docRef = await db.collection('docs').add(docData);
+            document.getElementById('doc-id').value = docRef.id;
+          }
+          
+          this.preview(docId || 'new');
+        } catch (error) {
+          console.error('Error saving:', error);
+          alert('Gagal menyimpan data. Periksa koneksi internet Anda.');
+        } finally {
+          btnSave.disabled = false;
+          btnSave.textContent = '💾 Simpan & Lihat';
+        }
+      },
+
+      preview(id) {
+        let d;
+        if (id === 'new') {
+          // Preview unsaved document
+          d = {
+            id: 'temp',
+            type: document.getElementById('doc-type').value,
+            no: document.getElementById('doc-no').value,
+            pihak: document.getElementById('doc-pihak').value || '-',
+            alamat: document.getElementById('doc-alamat').value || '-',
+            tanggal: document.getElementById('doc-tanggal').value,
+            jt: document.getElementById('doc-jt').value || '-',
+            items: [],
+            ppnPct: parse(document.getElementById('sum-ppn-pct').value),
+            diskon: parse(document.getElementById('sum-diskon').value),
+            total: parse(document.getElementById('sum-total').dataset.raw),
+            catatan: document.getElementById('doc-catatan').value,
+            syarat: document.getElementById('doc-syarat').value
+          };
+          document.querySelectorAll('#item-body tr').forEach(tr => {
+            d.items.push({
+              desc: tr.querySelector('.item-desc').value,
+              qty: parse(tr.querySelector('.item-qty').value),
+              sat: tr.querySelector('.item-sat').value,
+              harga: parse(tr.querySelector('.item-harga').value),
+              sub: parse(tr.querySelector('.item-qty').value) * parse(tr.querySelector('.item-harga').value)
             });
-            let sub = items.reduce((a, i) => a + (i.qty * i.price), 0);
-            const ppnPct = parseFloat(document.getElementById('inp-ppn-pct').value) || 0;
-            const diskon = parseFloat(document.getElementById('inp-diskon').value) || 0;
-            const total = sub + (sub * ppnPct/100) - diskon;
-
-            const direktur = document.getElementById('inp-direktur').value || '_______________';
-            localStorage.setItem('sig_direktur', direktur); // Simpan agar tidak perlu ketik ulang
-
-            const doc = {
-                id: document.getElementById('doc-id').value, type: document.getElementById('doc-type').value,
-                no: document.getElementById('inp-no').value, pihak: document.getElementById('inp-pihak').value,
-                alamat: document.getElementById('inp-alamat').value, tanggal: document.getElementById('inp-tgl').value,
-                jt: document.getElementById('inp-jt').value, items: items, ppnPct: ppnPct, diskon: diskon, total: total,
-                catatan: document.getElementById('inp-catatan').value, syarat: document.getElementById('inp-syarat').value,
-                signatures: { direktur }
-            };
-
-            document.getElementById('loading').style.display = 'flex';
-            const success = await saveData(doc);
-            document.getElementById('loading').style.display = 'none';
-            if(success) previewDoc(doc.id || Date.now().toString(), doc);
+          });
+        } else {
+          d = this.docs.find(x => x.id === id);
         }
+        
+        if(!d) return;
+        this.lastDoc = d;
+        
+        document.getElementById('pdf-type').textContent = d.type.toUpperCase();
+        document.getElementById('pdf-no').textContent = d.no;
+        document.getElementById('pdf-pihak').textContent = d.pihak;
+        document.getElementById('pdf-alamat').textContent = d.alamat;
+        document.getElementById('pdf-tgl').textContent = d.tanggal;
+        document.getElementById('pdf-jt').textContent = d.jt;
+        document.getElementById('pdf-items').innerHTML = d.items.map((i, idx) => `
+          <tr><td style="text-align:center">${idx+1}</td><td>${i.desc}</td><td style="text-align:center">${i.qty}</td><td style="text-align:center">${i.sat}</td>
+          <td style="text-align:right">${fmt(i.harga)}</td><td style="text-align:right">${fmt(i.sub)}</td></tr>`).join('');
+        
+        const sub = d.items.reduce((a,i)=>a+i.sub,0);
+        const ppnVal = Math.round(sub * (d.ppnPct/100));
+        document.getElementById('pdf-sub').textContent = fmt(sub);
+        document.getElementById('pdf-ppn-pct').textContent = d.ppnPct;
+        document.getElementById('pdf-ppn').textContent = fmt(ppnVal);
+        document.getElementById('pdf-disk').textContent = fmt(d.diskon);
+        document.getElementById('pdf-total').textContent = fmt(d.total);
+        document.getElementById('pdf-catatan').textContent = d.catatan || '-';
+        document.getElementById('pdf-syarat').textContent = d.syarat || '-';
 
-        function previewDoc(id, docData = null) {
-            const doc = docData || docs.find(d => d.id === id);
-            if(!doc) return;
+        document.getElementById('preview-container').innerHTML = document.getElementById('pdf-template').innerHTML;
+        this.nav('preview');
+      },
 
-            document.getElementById('pdf-no').innerText = doc.no;
-            document.getElementById('pdf-tgl').innerText = fmtDate(doc.tanggal);
-            document.getElementById('pdf-jt').innerText = fmtDate(doc.jt);
-            document.getElementById('pdf-pihak').innerText = doc.pihak;
-            document.getElementById('pdf-alamat').innerText = doc.alamat;
+      generatePDF() {
+        const el = document.getElementById('preview-container');
+        el.style.display = 'block';
+        const opt = {
+          margin: 0,
+          filename: `${this.lastDoc?.type}_${this.lastDoc?.no}.pdf`,
+          image: { type: 'jpeg', quality: 0.98 },
+          html2canvas: { scale: 2, useCORS: true },
+          jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+        };
+        html2pdf().set(opt).from(el).save().then(() => {});
+      },
 
-            const titleEl = document.getElementById('pdf-title');
-            const bodyEl = document.getElementById('pdf-body-text');
-            
-            if(doc.type === 'PO') {
-                titleEl.innerText = "SURAT PERINTAH PEMBELIAN (PURCHASE ORDER)";
-                bodyEl.innerHTML = `<p>Dengan hormat,</p><p>Berdasarkan kebutuhan operasional perusahaan, bersama ini kami memesan barang/jasa kepada perusahaan Bapak/Ibu dengan rincian sebagai berikut:</p>`;
-            } else if(doc.type === 'Invoice') {
-                titleEl.innerText = "INVOICE / TAGIHAN PEMBAYARAN";
-                bodyEl.innerHTML = `<p>Dengan hormat,</p><p>Sehubungan dengan selesainya pekerjaan/pengiriman barang sesuai pesanan, bersama ini kami sampaikan tagihan pembayaran kepada perusahaan Bapak/Ibu dengan rincian sebagai berikut:</p>`;
-            } else {
-                titleEl.innerText = "SURAT PENAWARAN HARGA";
-                bodyEl.innerHTML = `<p>Dengan hormat,</p><p>Menindaklanjuti informasi kebutuhan perusahaan Bapak/Ibu, bersama ini kami sampaikan penawaran harga untuk barang/jasa yang dapat kami sediakan. Adapun rincian harga yang kami tawarkan adalah sebagai berikut:</p>`;
-            }
-
-            let sub = 0;
-            document.getElementById('pdf-items').innerHTML = doc.items.map((i, idx) => {
-                const s = i.qty * i.price; sub += s;
-                return `<tr><td>${idx+1}</td><td>${i.desc}</td><td style="text-align:center">${i.qty}</td><td style="text-align:center">${i.sat}</td><td style="text-align:right">${fmtNum(i.price)}</td><td style="text-align:right">${fmtNum(s)}</td></tr>`;
-            }).join('');
-
-            const ppnVal = sub * (doc.ppnPct / 100);
-            document.getElementById('pdf-sub').innerText = fmt(sub);
-            document.getElementById('pdf-ppn-pct').innerText = doc.ppnPct;
-            document.getElementById('pdf-ppn').innerText = fmt(ppnVal);
-            document.getElementById('pdf-diskon').innerText = fmt(doc.diskon);
-            document.getElementById('pdf-total').innerText = fmt(doc.total);
-            document.getElementById('pdf-catatan').innerText = doc.catatan || '-';
-            document.getElementById('pdf-syarat').innerText = doc.syarat || '-';
-
-            // Isi Tanda Tangan & Tanggal TTD
-            document.getElementById('pdf-tgl-ttd').innerText = fmtDate(doc.tanggal);
-            document.getElementById('pdf-direktur').innerText = doc.signatures?.direktur || '_______________';
-
-            const box = document.getElementById('preview-box');
-            box.innerHTML = '';
-            box.appendChild(document.getElementById('pdf-template').cloneNode(true));
-            box.querySelector('#pdf-template').id = 'active-pdf';
-            nav('preview');
+      async del(id) {
+        if(!confirm('Hapus dokumen ini?')) return;
+        
+        try {
+          await db.collection('docs').doc(id).delete();
+        } catch (error) {
+          console.error('Error deleting:', error);
+          alert('Gagal menghapus data.');
         }
+      }
+    };
 
-        // 6. PDF GENERATOR & PRINT
-        function downloadPDF() {
-            const element = document.getElementById('active-pdf');
-            if(!element) return;
-            document.getElementById('loading').style.display = 'flex';
-
-            const opt = {
-                margin: 0, filename: `Dokumen_${document.getElementById('pdf-no').innerText}.pdf`,
-                image: { type: 'jpeg', quality: 0.98 },
-                html2canvas: { scale: 2, useCORS: true, logging: false },
-                jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
-            };
-
-            html2pdf().set(opt).from(element).save().then(() => {
-                document.getElementById('loading').style.display = 'none';
-            }).catch(err => {
-                alert("Gagal generate PDF (SecurityError). Gunakan tombol 'Cetak (Browser)' sebagai alternatif.");
-                document.getElementById('loading').style.display = 'none';
-                console.error(err);
-            });
-        }
-
-        function printDoc() {
-            window.print();
-        }
-
-        window.onload = loadData;
-    </script>
+    window.onload = () => app.init();
+    
+    // Cleanup on page unload
+    window.onbeforeunload = () => {
+      if (app.unsubscribe) {
+        app.unsubscribe();
+      }
+    };
+  </script>
 </body>
 </html>
