@@ -3,9 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sistem Dokumen - CV REZEKI AMANAH JAYA</title>
+    <title>Sistem Dokumen - CV REZEKI AMANAH JAYA GROUP</title>
     <!-- Library PDF -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+    
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', Tahoma, sans-serif; }
         body { background: #f3f4f6; display: flex; min-height: 100vh; }
@@ -14,11 +18,13 @@
         .sidebar { width: 260px; background: #111827; color: white; padding: 20px; position: fixed; height: 100vh; overflow-y: auto; }
         .brand { text-align: center; margin-bottom: 30px; padding-bottom: 20px; border-bottom: 1px solid #374151; }
         .brand img { width: 70px; margin-bottom: 10px; }
-        .brand h3 { font-size: 14px; }
+        .brand h3 { font-size: 14px; font-weight: 700; }
         .brand p { font-size: 10px; color: #9ca3af; }
         
         .menu-btn { width: 100%; background: transparent; border: none; color: #9ca3af; padding: 12px; text-align: left; cursor: pointer; border-radius: 8px; margin-bottom: 5px; font-size: 14px; }
         .menu-btn:hover, .menu-btn.active { background: #1f2937; color: #10b981; }
+        .status-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: #ef4444; margin-right: 5px; }
+        .status-dot.online { background: #10b981; }
         
         /* Main Content Styles */
         .main { flex: 1; margin-left: 260px; padding: 30px; }
@@ -63,11 +69,14 @@
         
         /* PDF Styles */
         .pdf-page { width: 210mm; min-height: 297mm; padding: 20mm; background: white; font-family: 'Times New Roman', serif; margin: 0 auto; color: #000; }
+        
+        /* KOP SURAT STYLES */
         .pdf-header { display: flex; align-items: center; border-bottom: 3px double #000; padding-bottom: 15px; margin-bottom: 20px; }
         .pdf-logo { width: 70px; margin-right: 15px; }
         .pdf-company { flex: 1; text-align: center; }
-        .pdf-company h1 { font-size: 20px; text-transform: uppercase; }
-        .pdf-company p { font-size: 11px; }
+        .pdf-company h1 { font-size: 20px; text-transform: uppercase; font-weight: bold; margin: 0; }
+        .pdf-company p { font-size: 11px; margin: 2px 0; }
+        .pdf-company .address { font-size: 9px; color: #333; }
         
         .pdf-meta { width: 100%; margin-bottom: 20px; font-size: 12px; }
         .pdf-meta td { border: none; padding: 4px; vertical-align: top; }
@@ -104,14 +113,18 @@
     
     <aside class="sidebar no-print">
         <div class="brand">
+            <!-- Pastikan file logo.png ada di repository GitHub -->
             <img src="logo.png" onerror="this.style.display='none'">
-            <h3>CV REZEKI AMANAH JAYA</h3>
+            <h3>CV REZEKI AMANAH JAYA GROUP</h3>
             <p>Supplier & Waste Solution Partner</p>
         </div>
         <button class="menu-btn active" onclick="nav('dashboard')">📊 Dashboard</button>
         <button class="menu-btn" onclick="nav('po')">📦 Purchase Order</button>
-        <button class="menu-btn" onclick="nav('invoice')"> Invoice</button>
-        <button class="menu-btn" onclick="nav('penawaran')"> Penawaran</button>
+        <button class="menu-btn" onclick="nav('invoice')">🧾 Invoice</button>
+        <button class="menu-btn" onclick="nav('penawaran')">📄 Penawaran</button>
+        <div style="margin-top: auto; padding: 10px; background: #1f2937; border-radius: 6px; font-size: 11px; text-align: center;">
+            <span id="status-dot" class="status-dot"></span> <span id="status-text">Connecting...</span>
+        </div>
     </aside>
 
     <main class="main">
@@ -141,10 +154,10 @@
                 
                 <!-- INPUT TANDA TANGAN & JABATAN -->
                 <div style="background:#f8fafc; padding:15px; border-radius:8px; margin:15px 0; border:1px solid #e2e8f0;">
-                    <h4 style="margin-bottom:10px; font-size:13px; color:#064e3b;">️ Penanda Tangan</h4>
+                    <h4 style="margin-bottom:10px; font-size:13px; color:#064e3b;">🖋️ Penanda Tangan</h4>
                     <div class="flex-row">
                         <div class="form-group flex-1"><label>Nama Lengkap</label><input type="text" id="inp-direktur" class="input-text" placeholder="Nama Direktur"></div>
-                        <div class="form-group flex-1"><label>Jabatan</label><input type="text" id="inp-jabatan" class="input-text" placeholder="Contoh: Direktur Utama"></div>
+                        <div class="form-group flex-1"><label>Jabatan (Manual)</label><input type="text" id="inp-jabatan" class="input-text" placeholder="Contoh: Direktur Utama"></div>
                     </div>
                 </div>
 
@@ -168,18 +181,23 @@
         <section id="preview" class="view">
             <div class="header no-print">
                 <h2>Preview</h2>
-                <div><button class="btn btn-primary" onclick="downloadPDF()">📥 Download PDF</button><button class="btn btn-outline" onclick="nav('dashboard')">Kembali</button></div>
+                <div><button class="btn btn-primary" onclick="downloadPDF()"> Download PDF</button><button class="btn btn-outline" onclick="nav('dashboard')">Kembali</button></div>
             </div>
             <div style="background:#ccc; padding:20px; text-align:center;"><div id="preview-box" style="display:inline-block; box-shadow:0 0 10px rgba(0,0,0,0.2);"></div></div>
         </section>
     </main>
 
-    <!-- PDF Template -->
+    <!-- PDF Template (Hidden) -->
     <div id="pdf-container" style="display:none;">
         <div id="pdf-template" class="pdf-page">
             <div class="pdf-header">
                 <img src="logo.png" class="pdf-logo" onerror="this.style.display='none'">
-                <div class="pdf-company"><h1>CV REZEKI AMANAH JAYA</h1><p>Supplier & Waste Solution Partner</p><p style="font-size:9px;">Flamingo Fla 06 No. 19, Sukamantri, Pasarkemis | Telp: 021-12345678</p></div>
+                <div class="pdf-company">
+                    <!-- KOP SURAT BARU SESUAI FILE DOCX -->
+                    <h1>CV REZEKI AMANAH JAYA GROUP</h1>
+                    <p>SUPPLIER & WASTE SOLUTION PARTNER</p>
+                    <p class="address">Cluster Puri Flamingo FLA 06/19 Sukamantri Pasarkemis Kab Tangerang HP.081296580968</p>
+                </div>
             </div>
             <table class="pdf-meta"><tr><td width="15%"><strong>Nomor</strong></td><td width="2%">:</td><td id="pdf-no"></td><td width="15%"><strong>Tanggal</strong></td><td width="2%">:</td><td id="pdf-tgl"></td></tr><tr><td><strong>Kepada</strong></td><td>:</td><td id="pdf-pihak"></td><td><strong>Jatuh Tempo</strong></td><td>:</td><td id="pdf-jt"></td></tr><tr><td><strong>Alamat</strong></td><td>:</td><td id="pdf-alamat" colspan="4"></td></tr></table>
             <div class="pdf-title" id="pdf-title">DOKUMEN</div>
@@ -189,7 +207,7 @@
             <div style="margin-top:20px; font-size:11px;"><strong>Catatan:</strong> <span id="pdf-catatan"></span><br><strong>Syarat:</strong> <span id="pdf-syarat"></span></div>
             <div class="pdf-signature">
                 <p>Tangerang, <span id="pdf-tgl-ttd"></span></p>
-                <p><strong>CV REZEKI AMANAH JAYA</strong></p>
+                <p><strong>CV REZEKI AMANAH JAYA GROUP</strong></p>
                 <div class="sig-space"></div>
                 <div class="sig-name" id="pdf-direktur">_______________</div>
                 <div id="pdf-jabatan" style="font-size:11px; color:#555;">Direktur Utama</div>
@@ -198,8 +216,96 @@
     </div>
 
     <script>
-        let docs = JSON.parse(localStorage.getItem('cvraj_docs') || '[]');
-        
+        // ==========================================
+        // 1. FIREBASE CONFIGURATION
+        // ==========================================
+        const firebaseConfig = {
+            apiKey: "ISI_API_KEY_ANDA",
+            authDomain: "project-id.firebaseapp.com",
+            projectId: "project-id",
+            storageBucket: "project-id.appspot.com",
+            messagingSenderId: "sender-id",
+            appId: "app-id"
+        };
+
+        let db = null;
+        let isOffline = false;
+
+        try {
+            firebase.initializeApp(firebaseConfig);
+            db = firebase.firestore();
+            db.collection('docs').limit(1).get().then(() => {
+                document.getElementById('status-dot').classList.add('online');
+                document.getElementById('status-text').innerText = "Online (Firebase)";
+            }).catch(() => {
+                isOffline = true;
+                document.getElementById('status-text').innerText = "Offline Mode (Local)";
+            });
+        } catch(e) {
+            isOffline = true;
+            document.getElementById('status-text').innerText = "Offline Mode (Local)";
+        }
+
+        let docs = [];
+
+        // ==========================================
+        // 2. DATA FUNCTIONS (Firebase + Fallback)
+        // ==========================================
+        async function loadData() {
+            try {
+                if(db && !isOffline) {
+                    const snap = await db.collection('docs').orderBy('created', 'desc').get();
+                    docs = []; snap.forEach(d => docs.push({id: d.id, ...d.data()}));
+                } else {
+                    docs = JSON.parse(localStorage.getItem('cvraj_docs') || '[]');
+                }
+                renderDashboard();
+            } catch(e) {
+                isOffline = true;
+                docs = JSON.parse(localStorage.getItem('cvraj_docs') || '[]');
+                renderDashboard();
+            }
+        }
+
+        async function saveData(doc) {
+            try {
+                if(db && !isOffline) {
+                    if(doc.id) await db.collection('docs').doc(doc.id).set(doc);
+                    else {
+                        doc.created = firebase.firestore.FieldValue.serverTimestamp();
+                        const ref = await db.collection('docs').add(doc);
+                        doc.id = ref.id;
+                    }
+                    return true;
+                } else {
+                    if(!doc.id) doc.id = Date.now().toString();
+                    doc.created = Date.now();
+                    const idx = docs.findIndex(d => d.id === doc.id);
+                    if(idx >= 0) docs[idx] = doc; else docs.unshift(doc);
+                    localStorage.setItem('cvraj_docs', JSON.stringify(docs));
+                    return true;
+                }
+            } catch(e) {
+                alert("Gagal menyimpan: " + e.message);
+                return false;
+            }
+        }
+
+        async function deleteData(id) {
+            if(!confirm("Hapus dokumen ini?")) return;
+            try {
+                if(db && !isOffline) await db.collection('docs').doc(id).delete();
+                else {
+                    docs = docs.filter(d => d.id !== id);
+                    localStorage.setItem('cvraj_docs', JSON.stringify(docs));
+                }
+                loadData();
+            } catch(e) { alert("Gagal hapus"); }
+        }
+
+        // ==========================================
+        // 3. UI FUNCTIONS
+        // ==========================================
         function nav(view) {
             document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
             document.querySelectorAll('.menu-btn').forEach(b => b.classList.remove('active'));
@@ -218,7 +324,7 @@
         function renderList(type) {
             const list = docs.filter(d => d.type === type);
             const tbody = document.getElementById(type === 'po' ? 'body-po' : type === 'invoice' ? 'body-inv' : 'body-pen');
-            tbody.innerHTML = list.map(d => `<tr><td>${d.no}</td><td>${d.pihak}</td><td>${d.tanggal}</td><td style="text-align:right">${fmt(d.total)}</td><td><button class="btn btn-primary" style="padding:4px 8px; font-size:11px" onclick="previewDoc('${d.id}')">👁️</button><button class="btn btn-danger" style="padding:4px 8px; font-size:11px" onclick="del('${d.id}')">🗑️</button></td></tr>`).join('');
+            tbody.innerHTML = list.map(d => `<tr><td>${d.no}</td><td>${d.pihak}</td><td>${d.tanggal}</td><td style="text-align:right">${fmt(d.total)}</td><td><button class="btn btn-primary" style="padding:4px 8px; font-size:11px" onclick="previewDoc('${d.id}')">👁️</button><button class="btn btn-danger" style="padding:4px 8px; font-size:11px" onclick="deleteData('${d.id}')">️</button></td></tr>`).join('');
         }
 
         function openForm(type) {
@@ -228,7 +334,6 @@
             document.getElementById('inp-tgl').value = new Date().toISOString().split('T')[0];
             ['inp-pihak','inp-alamat','inp-jt','inp-catatan','inp-syarat'].forEach(id => document.getElementById(id).value = '');
             document.getElementById('inp-direktur').value = localStorage.getItem('direktur') || '';
-            // Default Jabatan
             document.getElementById('inp-jabatan').value = localStorage.getItem('jabatan') || 'Direktur Utama';
             document.getElementById('body-items').innerHTML = '';
             document.getElementById('inp-ppn').value = 0;
@@ -262,7 +367,10 @@
         function fmt(n) { return new Intl.NumberFormat('id-ID', {style:'currency', currency:'IDR'}).format(n); }
         function fmtDate(d) { if(!d) return '-'; const dt = new Date(d); return `${dt.getDate()} ${['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Agu','Sep','Okt','Nov','Des'][dt.getMonth()]} ${dt.getFullYear()}`; }
 
-        function saveDoc() {
+        // ==========================================
+        // 4. SAVE & PREVIEW
+        // ==========================================
+        async function saveDoc() {
             const items = [];
             document.querySelectorAll('#body-items tr').forEach(tr => {
                 items.push({ desc: tr.querySelector('.item-desc').value, qty: parseFloat(tr.querySelector('.item-qty').value), sat: tr.querySelector('.item-sat').value, price: parseFloat(tr.querySelector('.item-price').value) });
@@ -271,11 +379,9 @@
             const ppn = sub * (parseFloat(document.getElementById('inp-ppn').value) || 0) / 100;
             const diskon = parseFloat(document.getElementById('inp-diskon').value) || 0;
             
-            // Capture Name and Title
             const direktur = document.getElementById('inp-direktur').value || '_______________';
             const jabatan = document.getElementById('inp-jabatan').value || 'Direktur Utama';
             
-            // Save to localstorage for auto-fill
             localStorage.setItem('direktur', direktur);
             localStorage.setItem('jabatan', jabatan);
 
@@ -291,13 +397,13 @@
                 diskon, total: sub + ppn - diskon,
                 catatan: document.getElementById('inp-catatan').value,
                 syarat: document.getElementById('inp-syarat').value,
-                direktur, jabatan // Save new fields
+                direktur, jabatan
             };
 
-            const idx = docs.findIndex(d => d.id === doc.id);
-            if(idx >= 0) docs[idx] = doc; else docs.unshift(doc);
-            localStorage.setItem('cvraj_docs', JSON.stringify(docs));
-            previewDoc(doc.id, doc);
+            document.getElementById('loading').style.display = 'flex';
+            const success = await saveData(doc);
+            document.getElementById('loading').style.display = 'none';
+            if(success) previewDoc(doc.id || Date.now().toString(), doc);
         }
 
         function previewDoc(id, docData = null) {
@@ -311,7 +417,7 @@
             document.getElementById('pdf-alamat').innerText = doc.alamat;
             document.getElementById('pdf-tgl-ttd').innerText = fmtDate(doc.tanggal);
             document.getElementById('pdf-direktur').innerText = doc.direktur || '_______________';
-            document.getElementById('pdf-jabatan').innerText = doc.jabatan || 'Direktur Utama'; // Update Title
+            document.getElementById('pdf-jabatan').innerText = doc.jabatan || 'Direktur Utama';
 
             const title = document.getElementById('pdf-title');
             const body = document.getElementById('pdf-body');
@@ -335,8 +441,10 @@
             nav('preview');
         }
 
+        // ==========================================
+        // 5. PDF GENERATOR (FIXED)
+        // ==========================================
         function downloadPDF() {
-            // Show container for rendering
             const container = document.getElementById('pdf-container');
             const element = document.getElementById('pdf-template');
             const originalDisplay = container.style.display;
@@ -363,14 +471,7 @@
             });
         }
 
-        function del(id) {
-            if(!confirm('Hapus?')) return;
-            docs = docs.filter(d => d.id !== id);
-            localStorage.setItem('cvraj_docs', JSON.stringify(docs));
-            renderDashboard();
-        }
-
-        window.onload = () => renderDashboard();
+        window.onload = () => loadData();
     </script>
 </body>
 </html>
