@@ -68,30 +68,64 @@
         .total { font-size: 18px; font-weight: 800; color: #064e3b; border-top: 1px dashed #bbf7d0; padding-top: 10px; }
         
         /* PDF Styles */
-        .pdf-page { width: 210mm; min-height: 297mm; padding: 20mm; background: white; font-family: 'Times New Roman', serif; margin: 0 auto; color: #000; }
+        .pdf-page { 
+            width: 210mm; min-height: 297mm; padding: 20mm; background: white; 
+            font-family: 'Times New Roman', serif; margin: 0 auto; color: #000; 
+            position: relative; 
+        }
+        
+        /* WATERMARK STYLES */
+        .pdf-watermark {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%) rotate(-30deg);
+            opacity: 0.08;
+            z-index: 0;
+            pointer-events: none;
+            text-align: center;
+            width: 80%;
+        }
+        .pdf-watermark img {
+            width: 200px;
+            height: auto;
+            display: block;
+            margin: 0 auto;
+        }
+        .pdf-watermark-text {
+            font-size: 48px;
+            font-weight: bold;
+            color: #064e3b;
+            text-transform: uppercase;
+            margin-top: 10px;
+            letter-spacing: 3px;
+        }
         
         /* KOP SURAT STYLES */
-        .pdf-header { display: flex; align-items: center; border-bottom: 3px double #000; padding-bottom: 15px; margin-bottom: 20px; }
+        .pdf-header { 
+            display: flex; align-items: center; border-bottom: 3px double #000; 
+            padding-bottom: 15px; margin-bottom: 20px; position: relative; z-index: 1; 
+        }
         .pdf-logo { width: 70px; margin-right: 15px; }
         .pdf-company { flex: 1; text-align: center; }
-        .pdf-company h1 { font-size: 20px; text-transform: uppercase; font-weight: bold; margin: 0; }
-        .pdf-company p { font-size: 11px; margin: 2px 0; }
-        .pdf-company .address { font-size: 9px; color: #333; }
+        .pdf-company h1 { font-size: 22px; text-transform: uppercase; font-weight: bold; margin: 0; color: #064e3b; }
+        .pdf-company p { font-size: 12px; margin: 3px 0; font-weight: bold; }
+        .pdf-company .address { font-size: 10px; font-weight: normal; color: #333; margin-top: 5px; }
         
-        .pdf-meta { width: 100%; margin-bottom: 20px; font-size: 12px; }
+        .pdf-meta { width: 100%; margin-bottom: 20px; font-size: 12px; position: relative; z-index: 1; }
         .pdf-meta td { border: none; padding: 4px; vertical-align: top; }
-        .pdf-title { text-align: center; margin: 25px 0; text-decoration: underline; font-weight: bold; }
-        .pdf-body { font-size: 12px; text-align: justify; margin-bottom: 20px; line-height: 1.5; }
+        .pdf-title { text-align: center; margin: 25px 0; text-decoration: underline; font-weight: bold; position: relative; z-index: 1; }
+        .pdf-body { font-size: 12px; text-align: justify; margin-bottom: 20px; line-height: 1.5; position: relative; z-index: 1; }
         
-        .pdf-table { width: 100%; border-collapse: collapse; margin: 15px 0; font-size: 11px; }
+        .pdf-table { width: 100%; border-collapse: collapse; margin: 15px 0; font-size: 11px; position: relative; z-index: 1; }
         .pdf-table th, .pdf-table td { border: 1px solid #000; padding: 8px; }
         .pdf-table th { background: #eee; text-align: center; }
         
-        .pdf-summary { width: 50%; margin-left: auto; margin-top: 10px; text-align: right; font-size: 11px; }
+        .pdf-summary { width: 50%; margin-left: auto; margin-top: 10px; text-align: right; font-size: 11px; position: relative; z-index: 1; }
         .pdf-summary td { border: none; padding: 2px; text-align: right; }
         .pdf-summary tr.total-row td { border-top: 2px solid #000; font-weight: bold; }
         
-        .pdf-signature { margin-top: 50px; text-align: right; font-size: 12px; }
+        .pdf-signature { margin-top: 50px; text-align: right; font-size: 12px; position: relative; z-index: 1; }
         .sig-space { height: 70px; }
         .sig-name { font-weight: bold; text-decoration: underline; }
         
@@ -113,7 +147,6 @@
     
     <aside class="sidebar no-print">
         <div class="brand">
-            <!-- Pastikan file logo.png ada di repository GitHub -->
             <img src="logo.png" onerror="this.style.display='none'">
             <h3>CV REZEKI AMANAH JAYA GROUP</h3>
             <p>Supplier & Waste Solution Partner</p>
@@ -136,7 +169,7 @@
                 <div class="stat-card" onclick="nav('invoice')"><h3>Invoice</h3><div class="stat-num" id="count-inv">0</div><button class="btn btn-primary">Buat Baru</button></div>
                 <div class="stat-card" onclick="nav('penawaran')"><h3>Penawaran</h3><div class="stat-num" id="count-pen">0</div><button class="btn btn-primary">Buat Baru</button></div>
             </div>
-            <div class="card"><h3> Dokumen Terbaru</h3><table id="tbl-recent"><thead><tr><th>No</th><th>Tipe</th><th>Klien</th><th>Total</th><th>Aksi</th></tr></thead><tbody id="body-recent"></tbody></table></div>
+            <div class="card"><h3>📄 Dokumen Terbaru</h3><table id="tbl-recent"><thead><tr><th>No</th><th>Tipe</th><th>Klien</th><th>Total</th><th>Aksi</th></tr></thead><tbody id="body-recent"></tbody></table></div>
         </section>
 
         <!-- List Views -->
@@ -181,7 +214,7 @@
         <section id="preview" class="view">
             <div class="header no-print">
                 <h2>Preview</h2>
-                <div><button class="btn btn-primary" onclick="downloadPDF()"> Download PDF</button><button class="btn btn-outline" onclick="nav('dashboard')">Kembali</button></div>
+                <div><button class="btn btn-primary" onclick="downloadPDF()">📥 Download PDF</button><button class="btn btn-outline" onclick="nav('dashboard')">Kembali</button></div>
             </div>
             <div style="background:#ccc; padding:20px; text-align:center;"><div id="preview-box" style="display:inline-block; box-shadow:0 0 10px rgba(0,0,0,0.2);"></div></div>
         </section>
@@ -190,10 +223,16 @@
     <!-- PDF Template (Hidden) -->
     <div id="pdf-container" style="display:none;">
         <div id="pdf-template" class="pdf-page">
+            <!-- WATERMARK TENGAH -->
+            <div class="pdf-watermark">
+                <img src="logo.png" onerror="this.style.display='none'">
+                <div class="pdf-watermark-text">CV REZEKI AMANAH JAYA GROUP</div>
+            </div>
+            
             <div class="pdf-header">
                 <img src="logo.png" class="pdf-logo" onerror="this.style.display='none'">
                 <div class="pdf-company">
-                    <!-- KOP SURAT BARU SESUAI FILE DOCX -->
+                    <!-- KOP SURAT (Sesuai KOP Surat.docx) -->
                     <h1>CV REZEKI AMANAH JAYA GROUP</h1>
                     <p>SUPPLIER & WASTE SOLUTION PARTNER</p>
                     <p class="address">Cluster Puri Flamingo FLA 06/19 Sukamantri Pasarkemis Kab Tangerang HP.081296580968</p>
@@ -217,17 +256,17 @@
 
     <script>
         // ==========================================
-        // 1. FIREBASE CONFIGURATION
+        // 1. FIREBASE CONFIGURATION (Sudah Diisi)
         // ==========================================
         const firebaseConfig = {
-                apiKey: "AIzaSyAK212qeQsvVdD4Ng0SWWSCL_Vp5uDaJtM",
-                authDomain: "dbcvamanah.firebaseapp.com",
-                projectId: "dbcvamanah",
-                storageBucket: "dbcvamanah.firebasestorage.app",
-                messagingSenderId: "192068380162",
-                appId: "1:192068380162:web:c2785ed3d3cc32daece91b",
-		measurementId: "G-ZPH7G9Y93B"
-            };
+            apiKey: "AIzaSyAK212qeQsvVdD4Ng0SWWSCL_Vp5uDaJtM",
+            authDomain: "dbcvamanah.firebaseapp.com",
+            projectId: "dbcvamanah",
+            storageBucket: "dbcvamanah.firebasestorage.app",
+            messagingSenderId: "192068380162",
+            appId: "1:192068380162:web:c2785ed3d3cc32daece91b",
+            measurementId: "G-ZPH7G9Y93B"
+        };
 
         let db = null;
         let isOffline = false;
@@ -325,7 +364,7 @@
         function renderList(type) {
             const list = docs.filter(d => d.type === type);
             const tbody = document.getElementById(type === 'po' ? 'body-po' : type === 'invoice' ? 'body-inv' : 'body-pen');
-            tbody.innerHTML = list.map(d => `<tr><td>${d.no}</td><td>${d.pihak}</td><td>${d.tanggal}</td><td style="text-align:right">${fmt(d.total)}</td><td><button class="btn btn-primary" style="padding:4px 8px; font-size:11px" onclick="previewDoc('${d.id}')">👁️</button><button class="btn btn-danger" style="padding:4px 8px; font-size:11px" onclick="deleteData('${d.id}')">️</button></td></tr>`).join('');
+            tbody.innerHTML = list.map(d => `<tr><td>${d.no}</td><td>${d.pihak}</td><td>${d.tanggal}</td><td style="text-align:right">${fmt(d.total)}</td><td><button class="btn btn-primary" style="padding:4px 8px; font-size:11px" onclick="previewDoc('${d.id}')">👁️</button><button class="btn btn-danger" style="padding:4px 8px; font-size:11px" onclick="deleteData('${d.id}')">🗑️</button></td></tr>`).join('');
         }
 
         function openForm(type) {
@@ -411,6 +450,15 @@
             const doc = docData || docs.find(d => d.id === id);
             if(!doc) return;
 
+            const pdfTitle = document.getElementById('pdf-title');
+            const pdfBody = document.getElementById('pdf-body');
+            const pdfItems = document.getElementById('pdf-items');
+            
+            if(!pdfTitle || !pdfBody || !pdfItems) {
+                alert("Error: Template PDF tidak ditemukan.");
+                return;
+            }
+
             document.getElementById('pdf-no').innerText = doc.no;
             document.getElementById('pdf-tgl').innerText = fmtDate(doc.tanggal);
             document.getElementById('pdf-jt').innerText = fmtDate(doc.jt);
@@ -420,14 +468,16 @@
             document.getElementById('pdf-direktur').innerText = doc.direktur || '_______________';
             document.getElementById('pdf-jabatan').innerText = doc.jabatan || 'Direktur Utama';
 
-            const title = document.getElementById('pdf-title');
-            const body = document.getElementById('pdf-body');
-            if(doc.type === 'PO') { title.innerText = 'SURAT PERINTAH PEMBELIAN'; body.innerHTML = '<p>Dengan hormat,</p><p>Berdasarkan kebutuhan operasional perusahaan, bersama ini kami memesan barang/jasa dengan rincian sebagai berikut:</p>'; }
-            else if(doc.type === 'Invoice') { title.innerText = 'INVOICE / TAGIHAN'; body.innerHTML = '<p>Dengan hormat,</p><p>Bersama ini kami sampaikan tagihan pembayaran dengan rincian sebagai berikut:</p>'; }
-            else { title.innerText = 'SURAT PENAWARAN'; body.innerHTML = '<p>Dengan hormat,</p><p>Bersama ini kami sampaikan penawaran harga dengan rincian sebagai berikut:</p>'; }
+            if(doc.type === 'PO') { pdfTitle.innerText = 'SURAT PERINTAH PEMBELIAN'; pdfBody.innerHTML = '<p>Dengan hormat,</p><p>Berdasarkan kebutuhan operasional perusahaan, bersama ini kami memesan barang/jasa dengan rincian sebagai berikut:</p>'; }
+            else if(doc.type === 'Invoice') { pdfTitle.innerText = 'INVOICE / TAGIHAN'; pdfBody.innerHTML = '<p>Dengan hormat,</p><p>Bersama ini kami sampaikan tagihan pembayaran dengan rincian sebagai berikut:</p>'; }
+            else { pdfTitle.innerText = 'SURAT PENAWARAN'; pdfBody.innerHTML = '<p>Dengan hormat,</p><p>Bersama ini kami sampaikan penawaran harga dengan rincian sebagai berikut:</p>'; }
 
             let sub = 0;
-            document.getElementById('pdf-items').innerHTML = doc.items.map((i,idx) => { const s = i.qty * i.price; sub += s; return `<tr><td>${idx+1}</td><td>${i.desc}</td><td style="text-align:center">${i.qty}</td><td style="text-align:center">${i.sat}</td><td style="text-align:right">${i.price.toLocaleString('id-ID')}</td><td style="text-align:right">${s.toLocaleString('id-ID')}</td></tr>`; }).join('');
+            if(doc.items && doc.items.length > 0) {
+                pdfItems.innerHTML = doc.items.map((i,idx) => { const s = i.qty * i.price; sub += s; return `<tr><td>${idx+1}</td><td>${i.desc}</td><td style="text-align:center">${i.qty}</td><td style="text-align:center">${i.sat}</td><td style="text-align:right">${i.price.toLocaleString('id-ID')}</td><td style="text-align:right">${s.toLocaleString('id-ID')}</td></tr>`; }).join('');
+            } else {
+                pdfItems.innerHTML = '<tr><td colspan="6" style="text-align:center">Tidak ada item</td></tr>';
+            }
 
             const ppnVal = sub * (doc.ppnPct / 100);
             document.getElementById('pdf-sub').innerText = fmt(sub);
@@ -438,7 +488,14 @@
             document.getElementById('pdf-catatan').innerText = doc.catatan || '-';
             document.getElementById('pdf-syarat').innerText = doc.syarat || '-';
 
-            document.getElementById('preview-box').innerHTML = document.getElementById('pdf-template').outerHTML;
+            const previewBox = document.getElementById('preview-box');
+            if(previewBox) {
+                previewBox.innerHTML = '';
+                const templateClone = document.getElementById('pdf-template').cloneNode(true);
+                templateClone.id = 'active-pdf';
+                templateClone.style.display = 'block';
+                previewBox.appendChild(templateClone);
+            }
             nav('preview');
         }
 
