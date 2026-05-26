@@ -104,42 +104,31 @@
     </aside>
 
     <main class="main">
-        <!-- Dashboard -->
         <section id="dashboard" class="view active">
             <div class="header">
                 <h2>Dashboard</h2>
-                <button class="btn btn-test" onclick="testConnection()">🔍 Tes Koneksi Firebase</button>
+                <button class="btn btn-test" onclick="testConnection()">🔍 Tes Koneksi</button>
             </div>
-            
             <div id="alert-box" class="alert"></div>
-            
             <div class="stats">
                 <div class="stat-card" onclick="nav('po')"><h3>Purchase Order</h3><div class="stat-num" id="count-po">0</div><button class="btn btn-primary">Buat Baru</button></div>
                 <div class="stat-card" onclick="nav('invoice')"><h3>Invoice</h3><div class="stat-num" id="count-inv">0</div><button class="btn btn-primary">Buat Baru</button></div>
                 <div class="stat-card" onclick="nav('penawaran')"><h3>Penawaran</h3><div class="stat-num" id="count-pen">0</div><button class="btn btn-primary">Buat Baru</button></div>
             </div>
-            
             <div class="card">
                 <h3>📄 Dokumen Terbaru</h3>
                 <table id="tbl-recent"><thead><tr><th>No</th><th>Tipe</th><th>Klien</th><th>Tanggal</th><th>Total</th><th>Aksi</th></tr></thead><tbody id="body-recent"></tbody></table>
             </div>
-            
-            <!-- Debug Panel -->
             <div class="card">
-                <h4>🔧 Debug Info</h4>
-                <div class="debug-panel">
-                    <h4>Log:</h4>
-                    <div id="debug-log" class="debug-log">Menunggu aksi...</div>
-                </div>
+                <h4>🔧 Debug Log</h4>
+                <div class="debug-panel"><div id="debug-log" class="debug-log">Menunggu...</div></div>
             </div>
         </section>
 
-        <!-- List Views -->
         <section id="po" class="view"><div class="header"><h2>Purchase Order</h2><button class="btn btn-primary" onclick="openForm('PO')">+ Buat PO</button></div><div class="card"><table id="tbl-po"><thead><tr><th>No</th><th>Supplier</th><th>Tanggal</th><th>Total</th><th>Aksi</th></tr></thead><tbody id="body-po"></tbody></table></div></section>
         <section id="invoice" class="view"><div class="header"><h2>Invoice</h2><button class="btn btn-primary" onclick="openForm('Invoice')">+ Buat Invoice</button></div><div class="card"><table id="tbl-inv"><thead><tr><th>No</th><th>Klien</th><th>Tanggal</th><th>Total</th><th>Aksi</th></tr></thead><tbody id="body-inv"></tbody></table></div></section>
         <section id="penawaran" class="view"><div class="header"><h2>Penawaran</h2><button class="btn btn-primary" onclick="openForm('Penawaran')">+ Buat Penawaran</button></div><div class="card"><table id="tbl-pen"><thead><tr><th>No</th><th>Klien</th><th>Tanggal</th><th>Total</th><th>Aksi</th></tr></thead><tbody id="body-pen"></tbody></table></div></section>
 
-        <!-- Form Editor -->
         <section id="editor" class="view">
             <div class="header"><h2 id="form-title">Buat Dokumen</h2><button class="btn btn-outline" onclick="nav('dashboard')">Batal</button></div>
             <div class="card">
@@ -150,7 +139,7 @@
                     <h4 style="margin-bottom:10px; font-size:13px; color:#064e3b;">🖋️ Penanda Tangan</h4>
                     <div class="flex-row">
                         <div class="form-group flex-1"><label>Nama Lengkap</label><input type="text" id="inp-direktur" class="input-text" placeholder="Nama Direktur"></div>
-                        <div class="form-group flex-1"><label>Jabatan (Manual)</label><input type="text" id="inp-jabatan" class="input-text" placeholder="Contoh: Direktur Utama"></div>
+                        <div class="form-group flex-1"><label>Jabatan</label><input type="text" id="inp-jabatan" class="input-text" placeholder="Direktur Utama"></div>
                     </div>
                 </div>
                 <h4 style="margin:15px 0 10px;">Item</h4>
@@ -167,7 +156,6 @@
             </div>
         </section>
 
-        <!-- Preview -->
         <section id="preview" class="view">
             <div class="header no-print">
                 <h2>Preview</h2>
@@ -177,7 +165,6 @@
         </section>
     </main>
 
-    <!-- PDF Template -->
     <div id="pdf-container" style="display:none;">
         <div id="pdf-template" class="pdf-page">
             <div class="pdf-watermark">
@@ -209,7 +196,6 @@
     </div>
 
     <script>
-        // FIREBASE CONFIG
         const firebaseConfig = {
             apiKey: "AIzaSyAK212qeQsvVdD4Ng0SWWSCL_Vp5uDaJtM",
             authDomain: "dbcvamanah.firebaseapp.com",
@@ -242,55 +228,42 @@
             }
         }
 
-        // Init Firebase
         async function initFirebase() {
             try {
                 log("Initializing Firebase...");
                 firebase.initializeApp(firebaseConfig);
                 db = firebase.firestore();
-                
-                // Test connection
                 await db.collection('docs').limit(1).get();
-                
                 document.getElementById('status-dot').classList.add('online');
                 document.getElementById('status-text').innerText = "Online ✓";
-                log("Firebase connected successfully");
+                log("Firebase connected");
                 showAlert('success', 'Terhubung ke Firebase!');
-                
                 loadData();
             } catch(e) {
                 log("Firebase error: " + e.message);
                 document.getElementById('status-text').innerText = "Error ❌";
-                showAlert('error', 'Gagal koneksi Firebase: ' + e.message);
+                showAlert('error', 'Gagal koneksi: ' + e.message);
             }
         }
 
-        // Test Connection Button
         async function testConnection() {
             log("Testing connection...");
-            showAlert('info', 'Menguji koneksi...');
-            
+            showAlert('info', 'Menguji...');
             try {
-                if(!db) {
-                    await initFirebase();
-                    return;
-                }
-                
+                if(!db) { await initFirebase(); return; }
                 const snap = await db.collection('docs').limit(1).get();
-                log(`Connection OK. Found ${snap.size} documents (test query)`);
-                showAlert('success', 'Koneksi Firebase OK!');
+                log(`Connection OK. Found ${snap.size} docs`);
+                showAlert('success', 'Koneksi OK!');
             } catch(e) {
                 log("Test failed: " + e.message);
                 showAlert('error', 'Tes gagal: ' + e.message);
             }
         }
 
-        // Load data from Firebase ONLY
         async function loadData() {
             try {
                 log("Loading documents...");
                 if(!db) throw new Error("Firebase not initialized");
-                
                 const snap = await db.collection('docs').orderBy('created', 'desc').get();
                 docs = [];
                 snap.forEach(d => {
@@ -298,25 +271,18 @@
                     docs.push({ id: d.id, ...data });
                     log(`Loaded: ${data.type} #${data.no}`);
                 });
-                
-                log(`Total loaded: ${docs.length} documents`);
+                log(`Total: ${docs.length} documents`);
                 renderDashboard();
-                
-                if(docs.length === 0) {
-                    log("No documents found in database");
-                }
             } catch(e) {
                 log("Load error: " + e.message);
-                showAlert('error', 'Gagal memuat data: ' + e.message);
+                showAlert('error', 'Gagal load: ' + e.message);
             }
         }
 
-        // Save to Firebase ONLY
         async function saveData(doc) {
             try {
-                log(`Saving document: ${doc.type} #${doc.no}`);
+                log(`Saving: ${doc.type} #${doc.no}`);
                 if(!db) throw new Error("Firebase not initialized");
-                
                 if(doc.id) {
                     await db.collection('docs').doc(doc.id).set(doc);
                     log(`Updated: ${doc.id}`);
@@ -334,16 +300,15 @@
         }
 
         async function deleteData(id) {
-            if(!confirm("Hapus dokumen ini?")) return;
+            if(!confirm("Hapus?")) return;
             try {
                 log(`Deleting: ${id}`);
-                if(!db) throw new Error("Firebase not initialized");
+                if(!db) throw new Error("Not initialized");
                 await db.collection('docs').doc(id).delete();
-                log("Deleted successfully");
+                log("Deleted");
                 loadData();
             } catch(e) {
-                showAlert('error', 'Gagal hapus: ' + e.message);
-                log("Delete error: " + e.message);
+                showAlert('error', 'Gagal: ' + e.message);
             }
         }
 
@@ -359,46 +324,22 @@
             document.getElementById('count-po').innerText = docs.filter(d => d.type === 'PO').length;
             document.getElementById('count-inv').innerText = docs.filter(d => d.type === 'Invoice').length;
             document.getElementById('count-pen').innerText = docs.filter(d => d.type === 'Penawaran').length;
-            
             const tbody = document.getElementById('body-recent');
             if(docs.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; color:#666;">Belum ada dokumen. Buat dokumen baru untuk mulai.</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; color:#666;">Belum ada dokumen</td></tr>';
                 return;
             }
-            
-            tbody.innerHTML = docs.slice(0,5).map(d => `
-                <tr>
-                    <td>${d.no}</td>
-                    <td><span style="background:#e2e8f0; padding:2px 8px; border-radius:4px; font-size:11px;">${d.type}</span></td>
-                    <td>${d.pihak}</td>
-                    <td>${fmtDate(d.tanggal)}</td>
-                    <td style="text-align:right">${fmt(d.total)}</td>
-                    <td><button class="btn btn-primary" style="padding:4px 8px; font-size:11px" onclick="previewDoc('${d.id}')">👁️</button></td>
-                </tr>
-            `).join('');
+            tbody.innerHTML = docs.slice(0,5).map(d => `<tr><td>${d.no}</td><td><span style="background:#e2e8f0; padding:2px 8px; border-radius:4px; font-size:11px;">${d.type}</span></td><td>${d.pihak}</td><td>${fmtDate(d.tanggal)}</td><td style="text-align:right">${fmt(d.total)}</td><td><button class="btn btn-primary" style="padding:4px 8px; font-size:11px" onclick="previewDoc('${d.id}')">👁️</button></td></tr>`).join('');
         }
 
         function renderList(type) {
             const list = docs.filter(d => d.type === type);
             const tbody = document.getElementById(type === 'po' ? 'body-po' : type === 'invoice' ? 'body-inv' : 'body-pen');
-            
             if(list.length === 0) {
                 tbody.innerHTML = `<tr><td colspan="5" style="text-align:center; color:#666;">Belum ada ${type}</td></tr>`;
                 return;
             }
-            
-            tbody.innerHTML = list.map(d => `
-                <tr>
-                    <td>${d.no}</td>
-                    <td>${d.pihak}</td>
-                    <td>${fmtDate(d.tanggal)}</td>
-                    <td style="text-align:right">${fmt(d.total)}</td>
-                    <td>
-                        <button class="btn btn-primary" style="padding:4px 8px; font-size:11px" onclick="previewDoc('${d.id}')">👁️</button>
-                        <button class="btn btn-danger" style="padding:4px 8px; font-size:11px" onclick="deleteData('${d.id}')">🗑️</button>
-                    </td>
-                </tr>
-            `).join('');
+            tbody.innerHTML = list.map(d => `<tr><td>${d.no}</td><td>${d.pihak}</td><td>${fmtDate(d.tanggal)}</td><td style="text-align:right">${fmt(d.total)}</td><td><button class="btn btn-primary" style="padding:4px 8px; font-size:11px" onclick="previewDoc('${d.id}')">👁️</button><button class="btn btn-danger" style="padding:4px 8px; font-size:11px" onclick="deleteData('${d.id}')">🗑️</button></td></tr>`).join('');
         }
 
         function openForm(type) {
@@ -413,7 +354,7 @@
             document.getElementById('inp-ppn').value = 0;
             document.getElementById('inp-diskon').value = 0;
             addItem();
-            log(`Opened form for ${type}`);
+            log(`Opened form: ${type}`);
             nav('editor');
         }
 
@@ -452,13 +393,13 @@
                     price: parseFloat(tr.querySelector('.item-price').value) || 0 
                 });
             });
-            
             const sub = items.reduce((a,i) => a + (i.qty * i.price), 0);
             const ppn = sub * (parseFloat(document.getElementById('inp-ppn').value) || 0) / 100;
             const diskon = parseFloat(document.getElementById('inp-diskon').value) || 0;
+            const docId = document.getElementById('doc-id').value;
             
+            // FIX: Jangan masukkan id jika kosong
             const doc = {
-                id: document.getElementById('doc-id').value || undefined,
                 type: document.getElementById('doc-type').value,
                 no: document.getElementById('inp-no').value,
                 pihak: document.getElementById('inp-pihak').value,
@@ -475,18 +416,19 @@
                 jabatan: document.getElementById('inp-jabatan').value || 'Direktur Utama'
             };
 
+            if(docId) doc.id = docId;
+
             document.getElementById('loading').style.display = 'flex';
-            log("Saving document...");
-            
+            log("Saving...");
             try {
                 await saveData(doc);
-                log("Save successful");
-                showAlert('success', 'Dokumen berhasil disimpan!');
+                log("Saved!");
+                showAlert('success', 'Berhasil disimpan!');
                 previewDoc(doc.id, doc);
-                loadData(); // Refresh dashboard
+                loadData();
             } catch(e) {
-                log("Save failed: " + e.message);
-                showAlert('error', 'Gagal menyimpan: ' + e.message);
+                log("Failed: " + e.message);
+                showAlert('error', 'Gagal: ' + e.message);
             } finally {
                 document.getElementById('loading').style.display = 'none';
             }
@@ -494,8 +436,7 @@
 
         function previewDoc(id, docData = null) {
             const doc = docData || docs.find(d => d.id === id);
-            if(!doc) { log("Document not found: " + id); return; }
-
+            if(!doc) { log("Not found: " + id); return; }
             document.getElementById('pdf-no').innerText = doc.no;
             document.getElementById('pdf-tgl').innerText = fmtDate(doc.tanggal);
             document.getElementById('pdf-jt').innerText = fmtDate(doc.jt);
@@ -504,24 +445,18 @@
             document.getElementById('pdf-tgl-ttd').innerText = fmtDate(doc.tanggal);
             document.getElementById('pdf-direktur').innerText = doc.direktur || '_______________';
             document.getElementById('pdf-jabatan').innerText = doc.jabatan || 'Direktur Utama';
-
             const title = document.getElementById('pdf-title');
             const body = document.getElementById('pdf-body');
-            if(doc.type === 'PO') { title.innerText = 'SURAT PERINTAH PEMBELIAN'; body.innerHTML = '<p>Dengan hormat,</p><p>Berdasarkan kebutuhan operasional perusahaan, bersama ini kami memesan barang/jasa dengan rincian sebagai berikut:</p>'; }
-            else if(doc.type === 'Invoice') { title.innerText = 'INVOICE / TAGIHAN'; body.innerHTML = '<p>Dengan hormat,</p><p>Bersama ini kami sampaikan tagihan pembayaran dengan rincian sebagai berikut:</p>'; }
-            else { title.innerText = 'SURAT PENAWARAN'; body.innerHTML = '<p>Dengan hormat,</p><p>Bersama ini kami sampaikan penawaran harga dengan rincian sebagai berikut:</p>'; }
-
+            if(doc.type === 'PO') { title.innerText = 'SURAT PERINTAH PEMBELIAN'; body.innerHTML = '<p>Dengan hormat,</p><p>Berdasarkan kebutuhan operasional, bersama ini kami memesan barang/jasa:</p>'; }
+            else if(doc.type === 'Invoice') { title.innerText = 'INVOICE'; body.innerHTML = '<p>Dengan hormat,</p><p>Bersama ini kami sampaikan tagihan:</p>'; }
+            else { title.innerText = 'SURAT PENAWARAN'; body.innerHTML = '<p>Dengan hormat,</p><p>Bersama ini kami sampaikan penawaran:</p>'; }
             let sub = 0;
             const pdfItems = document.getElementById('pdf-items');
             if(doc.items && doc.items.length > 0) {
-                pdfItems.innerHTML = doc.items.map((i,idx) => { 
-                    const s = i.qty * i.price; sub += s; 
-                    return `<tr><td>${idx+1}</td><td>${i.desc}</td><td style="text-align:center">${i.qty}</td><td style="text-align:center">${i.sat}</td><td style="text-align:right">${i.price.toLocaleString('id-ID')}</td><td style="text-align:right">${s.toLocaleString('id-ID')}</td></tr>`; 
-                }).join('');
+                pdfItems.innerHTML = doc.items.map((i,idx) => { const s = i.qty * i.price; sub += s; return `<tr><td>${idx+1}</td><td>${i.desc}</td><td style="text-align:center">${i.qty}</td><td style="text-align:center">${i.sat}</td><td style="text-align:right">${i.price.toLocaleString('id-ID')}</td><td style="text-align:right">${s.toLocaleString('id-ID')}</td></tr>`; }).join('');
             } else {
                 pdfItems.innerHTML = '<tr><td colspan="6" style="text-align:center">Tidak ada item</td></tr>';
             }
-
             const ppnVal = sub * (doc.ppnPct / 100);
             document.getElementById('pdf-sub').innerText = fmt(sub);
             document.getElementById('pdf-ppn-pct').innerText = doc.ppnPct;
@@ -530,7 +465,6 @@
             document.getElementById('pdf-total').innerText = fmt(doc.total);
             document.getElementById('pdf-catatan').innerText = doc.catatan || '-';
             document.getElementById('pdf-syarat').innerText = doc.syarat || '-';
-
             const previewBox = document.getElementById('preview-box');
             if(previewBox) {
                 previewBox.innerHTML = '';
@@ -539,7 +473,7 @@
                 clone.style.display = 'block';
                 previewBox.appendChild(clone);
             }
-            log("Preview generated");
+            log("Preview ready");
             nav('preview');
         }
 
@@ -549,15 +483,7 @@
             const originalDisplay = container.style.display;
             container.style.display = 'block'; 
             document.getElementById('loading').style.display = 'flex';
-            
-            const opt = {
-                margin: 10,
-                filename: `Dokumen_${document.getElementById('pdf-no').innerText}.pdf`,
-                image: { type: 'jpeg', quality: 0.98 },
-                html2canvas: { scale: 2, useCORS: true, logging: false },
-                jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
-            };
-
+            const opt = { margin: 10, filename: `Dokumen_${document.getElementById('pdf-no').innerText}.pdf`, image: { type: 'jpeg', quality: 0.98 }, html2canvas: { scale: 2, useCORS: true, logging: false }, jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' } };
             html2pdf().set(opt).from(element).save().then(() => {
                 document.getElementById('loading').style.display = 'none';
                 container.style.display = originalDisplay;
@@ -565,16 +491,12 @@
             }).catch(err => {
                 document.getElementById('loading').style.display = 'none';
                 container.style.display = originalDisplay;
-                showAlert('error', 'Download gagal. Gunakan Ctrl+P → Save as PDF.');
+                showAlert('error', 'Gagal. Gunakan Ctrl+P');
                 log("PDF error: " + err.message);
             });
         }
 
-        // Start
-        window.onload = () => {
-            log("App started");
-            initFirebase();
-        };
+        window.onload = () => { log("App started"); initFirebase(); };
     </script>
 </body>
 </html>
